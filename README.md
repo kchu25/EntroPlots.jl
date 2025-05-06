@@ -175,15 +175,25 @@ logoplot_with_highlight_crosslink(pfm, background, C2, highlighted_regions2)
 <!-- 
 save_crosslinked_logoplot(pfm, C2, "tmp.png"; highlighted_regions=highlighted_regions2)-->
  
+# For proteins
 
-# Example protein position frequency matrix (PFM)
+### Example protein position frequency matrix (PFM)
 
+```
 matrix = rand(20, 25)
 pfm_protein = matrix ./ sum(matrix, dims=1)
 reduce_entropy!(pfm_protein)
-### 20 x 25 matrix, rows = amino acids, columns = positions
+```
 
+### 20 x 25 matrix, rows = amino acids, columns = positions
+```
 logoplot(pfm_protein; protein=true)
+```
+### save 
+```
+save_logoplot(pfm_protein, "logo_protein.png"; protein=true)
+```
+![highlight-pfm](demo/logo_protein.png)
 
 ## Acknowledgement
 This code repo modifies some of the code using the work from https://github.com/BenjaminDoran/LogoPlots.jl.

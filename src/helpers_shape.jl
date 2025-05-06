@@ -3,7 +3,7 @@ mutable struct shape
     y::Vector{Float64}
 end
 
-function get_arrow_basic(;line_scale=1.0, right=true, x_offset=0.0)
+function get_arrow_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
     #=
         the horizontal line 
             --------
@@ -15,10 +15,19 @@ function get_arrow_basic(;line_scale=1.0, right=true, x_offset=0.0)
             negative: shift to the left
     =#
     arrow_line_width = line_scale * 4.0
-    x = [0.0, arrow_line_width, arrow_line_width, line_scale * 5.5, arrow_line_width, arrow_line_width, 0.0] .+ x_offset
-    y = [1.05, 1.05, 1.15, 1.0, 0.85, 0.95, 0.95 ]
-    if right 
-        return shape(x,y)
+    x =
+        [
+            0.0,
+            arrow_line_width,
+            arrow_line_width,
+            line_scale * 5.5,
+            arrow_line_width,
+            arrow_line_width,
+            0.0,
+        ] .+ x_offset
+    y = [1.05, 1.05, 1.15, 1.0, 0.85, 0.95, 0.95]
+    if right
+        return shape(x, y)
     else
         return shape(-x, y)
     end
@@ -35,39 +44,53 @@ get_top_most_point(coords::Vector{shape}) = maximum(get_top_most_point.(coords))
 get_bottom_most_point(_shape_::shape) = minimum(_shape_.y)
 get_bottom_most_point(coords::Vector{shape}) = minimum(get_bottom_most_point.(coords))
 
-x_substract!(_shape_::shape, a) = begin _shape_.x .= _shape_.x .- a end
+x_substract!(_shape_::shape, a) = begin
+    _shape_.x .= _shape_.x .- a
+end
 x_substract!(coords::Vector{shape}, a) = x_substract!.(coords, a)
-x_add!(_shape_::shape, a) = begin _shape_.x .= _shape_.x .+ a end
+x_add!(_shape_::shape, a) = begin
+    _shape_.x .= _shape_.x .+ a
+end
 x_add!(coords::Vector{shape}, a) = x_add!.(coords, a)
-x_divide!(_shape_::shape, a) = begin 
+x_divide!(_shape_::shape, a) = begin
     @assert a != 0.0 "a cannot be zero"
-    _shape_.x .= _shape_.x ./ a 
+    _shape_.x .= _shape_.x ./ a
 end
 x_divide!(coords::Vector{shape}, a) = x_divide!.(coords, a)
-x_multiply!(_shape_::shape, a) = begin _shape_.x .= _shape_.x .* a end
+x_multiply!(_shape_::shape, a) = begin
+    _shape_.x .= _shape_.x .* a
+end
 x_multiply!(coords::Vector{shape}, a) = x_multiply!.(coords, a)
 
-get_width(coords::Vector{shape}) = get_right_most_point(coords) - get_left_most_point(coords)
-get_height(coords::Vector{shape}) = get_top_most_point(coords) - get_bottom_most_point(coords)
+get_width(coords::Vector{shape}) =
+    get_right_most_point(coords) - get_left_most_point(coords)
+get_height(coords::Vector{shape}) =
+    get_top_most_point(coords) - get_bottom_most_point(coords)
 
-y_substract!(_shape_::shape, a) = begin _shape_.y .= _shape_.y .- a end
+y_substract!(_shape_::shape, a) = begin
+    _shape_.y .= _shape_.y .- a
+end
 y_substract!(coords::Vector{shape}, a) = y_substract!.(coords, a)
-y_add!(_shape_::shape, a) = begin _shape_.y .= _shape_.y .+ a end
+y_add!(_shape_::shape, a) = begin
+    _shape_.y .= _shape_.y .+ a
+end
 y_add!(coords::Vector{shape}, a) = y_add!.(coords, a)
-y_divide!(_shape_::shape, a) = begin 
+y_divide!(_shape_::shape, a) = begin
     @assert a != 0.0 "a cannot be zero"
-    _shape_.y .= _shape_.y ./ a 
+    _shape_.y .= _shape_.y ./ a
 end
 y_divide!(coords::Vector{shape}, a) = y_divide!.(coords, a)
-y_multiply!(_shape_::shape, a) = begin _shape_.y .= _shape_.y .* a end
+y_multiply!(_shape_::shape, a) = begin
+    _shape_.y .= _shape_.y .* a
+end
 y_multiply!(coords::Vector{shape}, a) = y_multiply!.(coords, a)
 
-shift_right(_shape_::shape, a)  = shape(_shape_.x .+ a, _shape_.y)
+shift_right(_shape_::shape, a) = shape(_shape_.x .+ a, _shape_.y)
 shift_right(_shapes_::Vector{shape}, a) = shift_right.(_shapes_, a)
-shift_left(_shape_::shape, a)   = shape(_shape_.x .- a, _shape_.y)
-shift_up(_shape_::shape, a)     = shape(_shape_.x, _shape_.y .+ a)
+shift_left(_shape_::shape, a) = shape(_shape_.x .- a, _shape_.y)
+shift_up(_shape_::shape, a) = shape(_shape_.x, _shape_.y .+ a)
 shift_up(_shapes_::Vector{shape}, a) = shift_up.(_shapes_, a)
-shift_down(_shape_::shape, a)   = shape(_shape_.x, _shape_.y .- a)
+shift_down(_shape_::shape, a) = shape(_shape_.x, _shape_.y .- a)
 
 Base.copy(_shape_::shape) = shape(copy(_shape_.x), copy(_shape_.y))
 
@@ -104,7 +127,7 @@ function scale_height!(coords::Vector{shape}, scaled_height)
 end
 
 
-function scale_width!(coords::Vector{shape}, scaled_width) 
+function scale_width!(coords::Vector{shape}, scaled_width)
     min_max_normalize_x!(coords)
     x_multiply!(coords, scaled_width)
 end
@@ -132,24 +155,28 @@ function scale_width_height_by_proportion!(coords::Vector{shape}, proportion)
     scale_height!(coords, changed_height)
 end
 
-function two_adjusted_glyphs(ALPHABET_GLYPHS_i; stretch_x=8.0)
+function two_adjusted_glyphs(ALPHABET_GLYPHS_i; stretch_x = 8.0)
     x = stretch_x .* (ALPHABET_GLYPHS_i.x .- minimum(ALPHABET_GLYPHS_i.x))
     # y = (ALPHABET_GLYPHS_i.y .- minimum(ALPHABET_GLYPHS_i.y))
     return shape(x, ALPHABET_GLYPHS_i.y .+ 0.5)
 end
 
-function make_in_between_basic(num_bt; 
-    word_increment=4.0, 
-    arrow_increment=1.0,
-    arrow_line_scale=1.25
-    )
+function make_in_between_basic(
+    num_bt;
+    word_increment = 4.0,
+    arrow_increment = 1.0,
+    arrow_line_scale = 1.25,
+)
     GLYPHS_2_adjusted = merge(
-    Dict("$i" => two_adjusted_glyphs(ALPHABET_GLYPHS["$i"]) for i = 0:9), # 0-9
-    Dict("b"=> two_adjusted_glyphs(ALPHABET_GLYPHS["b"]), 
-         "p"=> two_adjusted_glyphs(ALPHABET_GLYPHS["p"])) )# b and p
+        Dict("$i" => two_adjusted_glyphs(ALPHABET_GLYPHS["$i"]) for i = 0:9), # 0-9
+        Dict(
+            "b" => two_adjusted_glyphs(ALPHABET_GLYPHS["b"]),
+            "p" => two_adjusted_glyphs(ALPHABET_GLYPHS["p"]),
+        ),
+    )# b and p
     num_bt = Int(num_bt) # TODO see if this is necessary
-    in_bt_str = vcat(split("$num_bt", ""), ["b", "p"]) 
-    coords = shape[];
+    in_bt_str = vcat(split("$num_bt", ""), ["b", "p"])
+    coords = shape[]
     k = 0.0
     for i in in_bt_str
         g = copy(GLYPHS_2_adjusted["$i"])
@@ -157,11 +184,21 @@ function make_in_between_basic(num_bt;
         k += word_increment
     end
 
-    push!(coords, shift_right(
-            get_arrow_basic(;line_scale=arrow_line_scale), get_right_most_point(coords) + arrow_increment))
-    push!(coords, shift_left(
-            get_arrow_basic(;line_scale=arrow_line_scale, right=false), arrow_increment))
-    
+    push!(
+        coords,
+        shift_right(
+            get_arrow_basic(; line_scale = arrow_line_scale),
+            get_right_most_point(coords) + arrow_increment,
+        ),
+    )
+    push!(
+        coords,
+        shift_left(
+            get_arrow_basic(; line_scale = arrow_line_scale, right = false),
+            arrow_increment,
+        ),
+    )
+
     # return coords
     coords = shift_right.(coords, get_left_most_point(coords) * -1.0)  # left aligned to the origin
     bottom_most_pt = get_bottom_most_point(coords)
@@ -198,7 +235,7 @@ Note that this function does the following:
 function num_col_each_col!(coords_mat::Matrix{Vector{shape}}, given_len)
     widths = get_width.(coords_mat)
     # get the maximum length of each column (set of arrow-shapes)
-    max_widths_each_col = maximum(widths, dims=1)
+    max_widths_each_col = maximum(widths, dims = 1)
     each_col_ratio = max_widths_each_col ./ sum(max_widths_each_col)
     num_cols_each = Int.(ceil.(given_len .* each_col_ratio))
 
@@ -208,7 +245,7 @@ function num_col_each_col!(coords_mat::Matrix{Vector{shape}}, given_len)
 end
 
 function obtain_pfm_regions_and_dstarts(pfms, num_cols_each; d_ϵ = 0.5)
-    pfm_num_cols_each = size.(pfms,2)
+    pfm_num_cols_each = size.(pfms, 2)
     pfm_starts = Int[]
     d_starts = Int[]
     offset = 0
@@ -223,9 +260,18 @@ function obtain_pfm_regions_and_dstarts(pfms, num_cols_each; d_ϵ = 0.5)
     return pfm_starts, d_starts .+ d_ϵ
 end
 
-function make_arrow_shapes(ds_mats, weights, dist_cols::Int, pfms; 
-    arrow_shape_scale_ratio=0.8, height_top=2.0)
-    coords_mat = map(x->make_in_between_basic(x; arrow_line_scale=0.25*log(max(x,5))), ds_mats)
+function make_arrow_shapes(
+    ds_mats,
+    weights,
+    dist_cols::Int,
+    pfms;
+    arrow_shape_scale_ratio = 0.8,
+    height_top = 2.0,
+)
+    coords_mat = map(
+        x -> make_in_between_basic(x; arrow_line_scale = 0.25 * log(max(x, 5))),
+        ds_mats,
+    )
     # scale the width of each arrow-shapes and 
     # get the number of columns for each "column"
     num_cols_each = num_col_each_col!(coords_mat, dist_cols)
@@ -238,7 +284,7 @@ function make_arrow_shapes(ds_mats, weights, dist_cols::Int, pfms;
     # centering 
     center_pts_x_orig = get_center_point_x.(coords_mat)
     center_pts_y_orig = get_center_point_y.(coords_mat)
-    max_center_x = maximum(center_pts_x_orig, dims=1)
+    max_center_x = maximum(center_pts_x_orig, dims = 1)
     scale_width_height_by_proportion!.(coords_mat, arrow_shape_scale_ratio)
     center_pts_x = get_center_point_x.(coords_mat)
     center_pts_y = get_center_point_y.(coords_mat)
@@ -252,17 +298,16 @@ function make_arrow_shapes(ds_mats, weights, dist_cols::Int, pfms;
     height_increments = get_height_increments(scaled_heights)
     for i in axes(coords_mat, 1)
         for j in axes(coords_mat, 2)
-            coords_mat[i,j] = shift_up.(coords_mat[i,j], height_increments[i])
+            coords_mat[i, j] = shift_up.(coords_mat[i, j], height_increments[i])
         end
     end
 
     # shift right the arrow-shapes
     for (ind, right_inc) in enumerate(d_starts)
-        coords_mat[:,ind] .= shift_right.((coords_mat[:,ind]), right_inc)
+        coords_mat[:, ind] .= shift_right.((coords_mat[:, ind]), right_inc)
     end
 
-    total_pfm_cols = size.(pfms,2) |> sum
+    total_pfm_cols = size.(pfms, 2) |> sum
     total_d_cols = num_cols_each |> sum
     return coords_mat, pfm_starts, total_pfm_cols, total_d_cols
 end
-

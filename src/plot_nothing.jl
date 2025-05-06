@@ -8,29 +8,30 @@ function get_margin(num_cols)
         return 425Plots.mm
     elseif 50 ≤ num_cols < 60
         return 525Plots.mm
-    else 
+    else
         return 625Plots.mm
     end
 end
 
 @userplot NothingLogo
-@recipe function f(data::NothingLogo; 
-                   xaxis=false,
-                   yaxis=false,
-                   logo_x_offset=0.0,
-                   logo_y_offset=0.0,
-                   setup_off=false,
-                   beta=1.0,
-                   dpi=65,
-                   crosslink=false,
-                   xaxis_on=true,
-                   tight=false,
-                   )
+@recipe function f(
+    data::NothingLogo;
+    xaxis = false,
+    yaxis = false,
+    logo_x_offset = 0.0,
+    logo_y_offset = 0.0,
+    setup_off = false,
+    beta = 1.0,
+    dpi = 65,
+    crosslink = false,
+    xaxis_on = true,
+    tight = false,
+)
 
-    logo_size_height = crosslink ? logo_height + 115 : logo_height;
-    xaxis    = xaxis_on;
-    xaxis    = crosslink ? false : true;
-    yaxis    = crosslink ? false : true;
+    logo_size_height = crosslink ? logo_height + 115 : logo_height
+    xaxis = xaxis_on
+    xaxis = crosslink ? false : true
+    yaxis = crosslink ? false : true
     # _margin_ = crosslink ? 25Plots.mm : margin;
     # _margin_ = crosslink ? 525Plots.mm : margin;
     num_cols = data.args[1]
@@ -39,10 +40,10 @@ end
         xaxis --> xaxis
         yaxis --> yaxis
         ylims --> (crosslink ? -crosslink_stretch_factor2 : 0, ylim_max)
-        xlims_here = !tight ? (xlim_min, num_cols+2) : (0.5, num_cols+0.5)
+        xlims_here = !tight ? (xlim_min, num_cols + 2) : (0.5, num_cols + 0.5)
         xlims --> xlims_here
         # xlims --> (xlim_min, num_cols+1)        
-        logo_size = 2.5 .* (_width_factor_(num_cols)*num_cols, logo_height)
+        logo_size = 2.5 .* (_width_factor_(num_cols) * num_cols, logo_height)
         # logo_size = (_width_factor_(num_cols)*num_cols, logo_size_height) .* 2.5
         ticks --> :native
         yticks --> yticks  # Ensure ticks are generated

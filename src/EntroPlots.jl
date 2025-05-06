@@ -12,16 +12,16 @@ include("plot_logo_w_crosslinks.jl")
 include("plot_nothing.jl")
 include("plot_logo_w_arr_gaps.jl")
 
-export LogoPlot, 
-       logoplotwithcrosslink, 
-       logoplot_with_highlight,
-       logoplot_with_highlight_crosslink,
-       save_logoplot, 
-       save_crosslinked_logoplot,
-       logoplot_with_arrow_gaps,
-       save_logo_w_arrows,
-       reduce_entropy!,
-       NothingLogo
+export LogoPlot,
+    logoplotwithcrosslink,
+    logoplot_with_highlight,
+    logoplot_with_highlight_crosslink,
+    save_logoplot,
+    save_crosslinked_logoplot,
+    logoplot_with_arrow_gaps,
+    save_logo_w_arrows,
+    reduce_entropy!,
+    NothingLogo
 
 
 

@@ -35,4 +35,3 @@ const thickness_scaling = 0.0525
 # default margin 
 # const margin = 275Plots.mm # CLIP
 const margin = 100Plots.mm # CLIP
-
