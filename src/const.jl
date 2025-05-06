@@ -15,10 +15,13 @@ const xlim_min = -0.5
 const logo_height = 220
 # logo yticks
 const yticks = 0:1:2
+yticks_protein = 0:1:4
 const yminorticks = 2
 const ytickfontsize = 185
+ytickfontsize_protein = 100
 # logo xticks
 const xtickfontsize = 175
+xtickfontsize_protein = 100
 # logo font settings
 const logo_font = "Helvetica"
 const logo_font_size = 45
@@ -32,3 +35,4 @@ const thickness_scaling = 0.0525
 # default margin 
 # const margin = 275Plots.mm # CLIP
 const margin = 100Plots.mm # CLIP
+

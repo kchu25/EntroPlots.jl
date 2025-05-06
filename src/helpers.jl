@@ -46,3 +46,13 @@ end
 function is_overlapping(r1::UnitRange{T}, r2::UnitRange{T}) where T <: Integer
     max(r1.start, r2.start) ≤ min(r1.stop, r2.stop)
 end
+
+# Function to reduce entropy in each column
+function reduce_entropy!(pfm_protein; factor=10)
+    for j in axes(pfm_protein, 2)
+        # Increase the dominance of the highest value in each column
+        max_value = maximum(pfm_protein[:, j])
+        pfm_protein[:, j] .= pfm_protein[:, j] .^ factor
+        pfm_protein[:, j] ./= sum(pfm_protein[:, j])  # Normalize the column
+    end
+end

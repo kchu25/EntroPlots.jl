@@ -39,6 +39,7 @@ end
 @userplot LogoPlot
 @recipe function f(data::LogoPlot; 
                    rna=false, 
+                   protein=false,  
                    xaxis=false,
                    yaxis=false,
                    logo_x_offset=0.0,
@@ -59,12 +60,12 @@ end
         num_cols = size(data.args[1], 2)
         xlim_here = !tight ? (xlim_min, num_cols+2) : (0.5, num_cols+0.5)
         # @info "num_cols: $num_cols"
-        ylims --> (0, ylim_max)
+        ylims --> (0, protein ? 4.32 : ylim_max)
         xlims --> xlim_here
         # logo_size = (_width_factor_(num_cols)*num_cols, logo_height)
         logo_size = 3 .* (_width_factor_(num_cols)*num_cols, logo_height)
         ticks --> :native
-        yticks --> yticks  # Ensure ticks are generated
+        yticks --> (protein ? yticks_protein : yticks)  # Ensure ticks are generated
         ytickfontcolor --> :black
         ytick_direction --> :out
 
@@ -74,8 +75,8 @@ end
         yminorticks --> yminorticks
         ytickfont --> font(logo_font_size, logo_font)
         xtickfontcolor --> :black
-        ytickfontsize --> ytickfontsize 
-        xtickfontsize --> xtickfontsize 
+        ytickfontsize --> (protein ? ytickfontsize_protein : ytickfontsize)
+        xtickfontsize --> (protein ? xtickfontsize_protein : xtickfontsize)
         xaxis && (xaxis --> xaxis)
         yaxis && (yaxis --> yaxis)
         legend --> false
@@ -92,11 +93,15 @@ end
     dpi --> dpi
     alpha --> alpha
     pfm = data.args[1]
-    background = length(data.args) ≥ 2 ? data.args[2] : [0.25 for _ = 1:4]
-    coords = freq2xy(pfm; background=background, rna=rna, beta=beta,
-                     logo_x_offset=logo_x_offset, 
-                     logo_y_offset=logo_y_offset);
-    # @info "coords: $(typeof(coords[1]))"
+    background = length(data.args) ≥ 2 ? data.args[2] : (protein ? fill(1/20, 20) : fill(0.25, 4)) 
+    coords = protein ?  # <-- changed
+        freq2xy_protein(pfm; background=background, beta=beta,  # <-- changed
+                        logo_x_offset=logo_x_offset,
+                        logo_y_offset=logo_y_offset) :
+        freq2xy(pfm; background=background, rna=rna, beta=beta,
+                logo_x_offset=logo_x_offset,
+                logo_y_offset=logo_y_offset)
+
     if uniform_color
         if pos
             palette = PALETTE_pos
