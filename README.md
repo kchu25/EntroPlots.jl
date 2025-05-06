@@ -183,12 +183,9 @@ save_crosslinked_logoplot(pfm, C2, "tmp.png"; highlighted_regions=highlighted_re
 matrix = rand(20, 25)
 pfm_protein = matrix ./ sum(matrix, dims=1)
 reduce_entropy!(pfm_protein)
-```
-
-### 20 x 25 matrix, rows = amino acids, columns = positions
-```
 logoplot(pfm_protein; protein=true)
 ```
+
 ### save 
 ```
 save_logoplot(pfm_protein, "logo_protein.png"; protein=true)
