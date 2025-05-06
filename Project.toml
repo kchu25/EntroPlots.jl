@@ -1,0 +1,13 @@
+name = "EntroPlots"
+uuid = "742586e2-2ccd-48a5-bc1c-31de6daa8fd7"
+authors = ["Shane Kuei-Hsien Chu (skchu@wustl.edu)"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.11.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
