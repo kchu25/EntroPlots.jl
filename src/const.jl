@@ -18,7 +18,7 @@ const yticks = 0:1:2
 yticks_protein = 0:1:4
 const yminorticks = 2
 const ytickfontsize = 185
-ytickfontsize_protein = 100
+ytickfontsize_protein = 125
 # logo xticks
 const xtickfontsize = 175
 xtickfontsize_protein = 100

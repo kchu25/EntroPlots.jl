@@ -316,7 +316,7 @@ function save_logoplot(
             pos = pos,
         )
         plot!(p, xaxis = false, yaxis = true, 
-            ytickfontsize = (protein ? 2*ytickfontsize_protein : 295))
+            ytickfontsize = (protein ? ytickfontsize_protein : 295))
         hline!([0], linewidth = 25, color = :black)  # Add a thick horizontal line (x-axis)
         vline!([0], linewidth = 25, color = :black)  # Add a thick vertical line (y-axis)
     else
