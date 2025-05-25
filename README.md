@@ -192,5 +192,18 @@ save_logoplot(pfm_protein, "logo_protein.png"; protein=true)
 ```
 ![highlight-pfm](demo/logo_protein.png)
 
+
+With highlight:
+```
+logoplot_with_highlight(pfm_protein, [2:5, 8:12, 21:25]; protein=true)
+```
+
+Save:
+```
+save_logoplot(pfm_protein, "logo_protein_highlight.png"; protein=true, highlighted_regions = [2:5, 8:12, 21:25])
+```
+
+
+
 ## Acknowledgement
 This code repo modifies some of the code using the work from https://github.com/BenjaminDoran/LogoPlots.jl.

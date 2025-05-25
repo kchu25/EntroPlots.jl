@@ -23,6 +23,7 @@ end
     setup_off = false,
     beta = 1.0,
     dpi = 65,
+    protein = false,
     crosslink = false,
     xaxis_on = true,
     tight = false,
@@ -39,14 +40,15 @@ end
     if !setup_off
         xaxis --> xaxis
         yaxis --> yaxis
-        ylims --> (crosslink ? -crosslink_stretch_factor2 : 0, ylim_max)
+        ylims -->  (0, protein ? 4.32 : ylim_max)
+        # (crosslink ? -crosslink_stretch_factor2 : 0, ylim_max)
         xlims_here = !tight ? (xlim_min, num_cols + 2) : (0.5, num_cols + 0.5)
         xlims --> xlims_here
         # xlims --> (xlim_min, num_cols+1)        
         logo_size = 2.5 .* (_width_factor_(num_cols) * num_cols, logo_height)
         # logo_size = (_width_factor_(num_cols)*num_cols, logo_size_height) .* 2.5
         ticks --> :native
-        yticks --> yticks  # Ensure ticks are generated
+        yticks --> (protein ? yticks_protein : yticks) # Ensure ticks are generated
         ytickfontcolor --> :black
         ytick_direction --> :out
         ytickfontsize --> ytickfontsize

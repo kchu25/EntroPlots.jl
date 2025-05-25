@@ -179,6 +179,7 @@ function logoplot_with_highlight(
     pfm::AbstractMatrix,
     background::AbstractVector,
     highlighted_regions::Vector{UnitRange{Int}};
+    protein = false,
     rna = false,
     dpi = 65,
     alpha = _alpha_,
@@ -191,7 +192,7 @@ function logoplot_with_highlight(
     num_columns, range_complement =
         get_numcols_and_range_complement(pfm, highlighted_regions)
 
-    p = nothinglogo(num_columns)
+    p = nothinglogo(num_columns; protein=protein)
     for r in range_complement
         logo_x_offset = r.start - 1
         logoplot!(
@@ -199,6 +200,7 @@ function logoplot_with_highlight(
             (@view pfm[:, r]),
             background;
             rna = rna,
+            protein = protein,
             alpha = alpha,
             dpi = dpi,
             setup_off = true,
@@ -214,6 +216,7 @@ function logoplot_with_highlight(
             (@view pfm[:, r]),
             background;
             rna = rna,
+            protein = protein,
             dpi = dpi,
             setup_off = true,
             logo_x_offset = logo_x_offset,
@@ -228,13 +231,15 @@ end
 function logoplot_with_highlight(
     pfm::AbstractMatrix,
     highlighted_regions::Vector{UnitRange{Int}};
+    protein = false,
     rna = false,
 )
     return logoplot_with_highlight(
         pfm,
-        default_genomic_background,
+        protein ? default_protein_background : default_genomic_background,
         highlighted_regions;
         rna = rna,
+        protein = protein,
     )
 end
 
@@ -326,7 +331,7 @@ function save_logoplot(
             highlighted_regions;
             dpi = dpi,
             rna = rna,
-            # protein=protein, # TODO
+            protein=protein, 
             uniform_color = uniform_color,
             pos = pos,
         )
@@ -361,7 +366,7 @@ function save_logoplot(
     tight = false,
 )
     if protein
-        bg = fill(1/20, 20)
+        bg = default_protein_background
     else
         bg = default_genomic_background  # assume [0.25, 0.25, 0.25, 0.25]
     end
