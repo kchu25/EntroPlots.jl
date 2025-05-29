@@ -39,34 +39,41 @@ pfm =  [0.02  1.0  0.98  0.0   0.0   0.0   0.98  0.0   0.18  1.0
         0.98  0.0  0.02  0.19  0.0   0.96  0.01  0.89  0.03  0.0
         0.0   0.0  0.0   0.77  0.01  0.0   0.0   0.0   0.56  0.0
         0.0   0.0  0.0   0.04  0.99  0.04  0.01  0.11  0.23  0.0]
-
-# Define the background probabilities for (A, C, G, T)
-
+```
+Define the background probabilities for (A, C, G, T)
+```
 background = [0.25, 0.25, 0.25, 0.25]
+```
+Now plot it:
 
+```
 logoplot(pfm, background)
 ```
-will give
+This generates:
 
 ![pfm](demo/demo.png)
 
-The function `logoplot(pfm, background)` produces a plot where:
-- The x-axis shows the positions in the PWM. 
-- The y-axis shows the information content (bits) for each position.
+The plot shows:
+- X-axis: Positions in the PFM
+- Y-axis: Information content (in bits)
+
+Each stack represents the relative contribution of each base at a given position.
 
 The `background` is an array representing the background probabilities for A, C, G, and T. These should sum to 1. In this example, a uniform background of `[0.25, 0.25, 0.25, 0.25]` is used, assuming equal probabilities for each base.
 
-You can also call:
+## Defaults and Options
+Calling `logoplot(pfm)` uses the default uniform background:
 ```
 logoplot(pfm)
 ```
-to get the same results as above, where the background is set to `[0.25, 0.25, 0.25, 0.25]` by default.
 
-Use
+You can remove axes and margins for a cleaner look:
+
 ```
 logoplot(pfm; _margin_=0Plots.mm, tight=true, yaxis=false, xaxis=false)
 ```
-to take out the x and y -axis in the PWM plot, which gives 
+
+Output:
 
 ![pfm](demo/no_margin.png)
 
@@ -75,106 +82,26 @@ To save your plot, use `save_logoplot(pfm, background, save_name)`. For example:
 ```
 save_logoplot(pfm, background, "tmp/logo.png")
 ```
-Or simply:
+You can also omit the background argument to use the default uniform background:
 ```
 save_logoplot(pfm, "tmp/logo.png")
 ```
-where a uniform background of `[0.25, 0.25, 0.25, 0.25]` is used implicitly.
-
-
-## Plot your PWMs with crosslinking tendencies
-
-Cross-linked PWMs not only display the PWM but also account for crosslinking tendencies, which are particularly relevant for the binding sites of [RNA-binding proteins (RBPs)](https://en.wikipedia.org/wiki/RNA-binding_protein) from [CLIP-Seq](https://en.wikipedia.org/wiki/Cross-linking_immunoprecipitation).
-
-To plot these, you'll need to estimate the crosslinking tendencies along with the PFM. For a PFM with $L$ columns, provide a $K \times L$ matrix $C$, where $\sum_{k,\ell}C_{k\ell} \leq 1$.
-
-For example, when $K=1$:
-```
-C = [0.01  0.04  0.05  0.0  0.74  0.05  0.03  0.05  0.03  0.0] 
-```
-and the background:
-```
-background = [0.25, 0.25, 0.25, 0.25]
-```
-
-You can then plot the cross-linked PWM using:
-
-```
-logoplotwithcrosslink(pfm, background, C; rna=true)
-```
-This will generate:
-
-![pfm](demo/demo2.png)
-
-Setting the tag `rna=true` will change the logo from using thymine `T` to uracil `U`.
-
-Alternatively, you can use:
-```
-logoplotwithcrosslink(pfm, C; rna=true)
-```
-which will automatically assume a uniform background of `[0.25, 0.25, 0.25, 0.25]`.
-
-Use the command
-```
-save_crosslinked_logoplot(pfm, background, C, "demo1.png")
-save_crosslinked_logoplot(pfm, background, C2, "demo2.png")
-```
-or 
-```
-save_crosslinked_logoplot(pfm, C, "demo2.png") # uniform background
-```
-to save the plot.
-
-### Multiplexed crosslinking tendencies
-
-Multiplexed crosslinking tendencies occur when multiple crosslinking signatures are present in the dataset. Each signature can be applied to each sequence before performing motif discovery tasks. This situation corresponds to cases where the crosslink matrix $C$ has more than one row, i.e., $K > 1$."
-
-Suppose we have 
-```
-C2 = [0.01  0.01  0.03  0.0   0.37  0.03  0.02  0.03  0.01  0.0
-     0.01  0.0   0.11  0.01  0.26  0.0   0.03  0.01  0.02  0.01]
-```
-Now, using
-```
-logoplotwithcrosslink(pfm, background, C2; rna=true)
-```
-You'd get 
-
-![pfm](demo/demo3.png)
-
-Here, different colors indicate different crosslinking signatures, and their height is proportional to the crosslinking tendency at each position in the PWM. 
-
-Similar to above, use
-```
-save_crosslinked_logoplot(pfm, background, C2, "demo3.png"; rna=true)
-```
-to save the plot.
-
+By default, this assumes `[0.25, 0.25, 0.25, 0.25]` as the background probabilities.
 
 ## Plot your PWM with highlighted regions
-Sometimes you may have columns that you want to highlight, for example, when you have transcription factors binding sites embedded in a (long) transposable element (e.g. see figure 4 in this [paper](https://academic.oup.com/bioinformatics/article/39/6/btad378/7192989)). Then, what you can do is to provide a vector of `UnitRange{Int}` to highlight the regions of interest, e.g. 
+Sometimes, you may want to highlight specific columns in your PWM—such as known transcription factor binding sites within a longer sequence (e.g. see figure 4 in this [paper](https://academic.oup.com/bioinformatics/article/39/6/btad378/7192989)). To do so, provide a vector of `UnitRange{Int}` that specifies the regions of interest. For example:
+
 ```
 highlighted_regions1=[4:8]
 ```
-and do 
+Then call:
 ```
 logoplot_with_highlight(pfm, background, highlighted_regions1)
 ```
-to get 
+This will produce:
 
 ![highlight-pfm](demo/demo4.png)
 
-You can do it for crosslinked version as well:
-```
-highlighted_regions2=[1:5]
-logoplot_with_highlight_crosslink(pfm, background, C2, highlighted_regions2)
-```
-
-![highlight-pfm](demo/demo5.png)
-
-<!-- 
-save_crosslinked_logoplot(pfm, C2, "tmp.png"; highlighted_regions=highlighted_regions2)-->
- 
 # For proteins
 
 ### Example protein position frequency matrix (PFM)
@@ -198,12 +125,11 @@ With highlight:
 logoplot_with_highlight(pfm_protein, [2:5, 8:12, 21:25]; protein=true)
 ```
 
+![highlight-pfm](demo/logo_protein_highlight.png)
+
 Save:
 ```
 save_logoplot(pfm_protein, "logo_protein_highlight.png"; protein=true, highlighted_regions = [2:5, 8:12, 21:25])
 ```
-
-
-
 ## Acknowledgement
 This code repo modifies some of the code using the work from https://github.com/BenjaminDoran/LogoPlots.jl.

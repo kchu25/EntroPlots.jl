@@ -1,48 +1,127 @@
+function compute_adjusted_heights(col_view, ic_height, perturb)
+    # Scale frequencies by information content and add tiny noise
+    return ic_height .* col_view .+ perturb
+end
 
-function freq2xy(
-    pfm;
-    background = [0.25 for _ = 1:4],
-    rna = false,
-    beta = 1.0, # width of the x-axis for each letter in the motif
+function compute_vertical_offset(adjusted_heights, aa_idx)
+    # Sum of all heights smaller than the current aa height for stacking
+    return sum(adjusted_heights[adjusted_heights .< adjusted_heights[aa_idx]])
+end
+
+function compute_glyph_x_coords(glyph_x, beta, pos_idx, logo_x_offset)
+    return (beta * 1.2) .* glyph_x .+ (1 / (beta * 0.9)) * 0.35 .+ pos_idx .+ (logo_x_offset - 1)
+end
+
+function compute_glyph_y_coords(adjusted_height, glyph_y, y_offset, logo_y_offset)
+    return adjusted_height .* glyph_y .+ y_offset .+ logo_y_offset
+end
+
+# function freq2xy(
+#     pfm;
+#     background = fill(0.25, 4),
+#     rna = false,
+#     beta = 1.0,
+#     logo_x_offset = 0.0,
+#     logo_y_offset = 0.0,
+#     alphabet_coords = ALPHABET_GLYPHS,
+#     very_small_perturb = 1e-5 .* rand(4),
+# )
+#     all_coords = []
+#     charnames = rna ? rna_letters : dna_letters
+
+#     for (idx, c) in enumerate(charnames)
+#         xs, ys = Float64[], Float64[]
+#         charglyph = get(alphabet_coords, c, BASIC_RECT)
+
+#         for (pos_idx, col) in enumerate(eachcol(pfm))
+#             col_view = @view col[1:4]
+#             ic_height = ic_height_here(col_view; background = background)
+#             adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+#             y_offset = compute_vertical_offset(adjusted_heights, idx)
+
+#             push!(xs, compute_glyph_x_coords(charglyph.x, beta, pos_idx, logo_x_offset)...)
+#             push!(xs, NaN)
+#             push!(ys, compute_glyph_y_coords(adjusted_heights[idx], charglyph.y, y_offset, logo_y_offset)...)
+#             push!(ys, NaN)
+#         end
+
+#         push!(all_coords, (c, (; xs, ys)))
+#     end
+
+#     return all_coords
+# end
+
+# function freq2xy_protein(
+#     pfm;
+#     background = fill(1 / 20, 20),
+#     beta = 1.0,
+#     logo_x_offset = 0.0,
+#     logo_y_offset = 0.0,
+#     alphabet_coords = ALPHABET_GLYPHS,
+#     very_small_perturb = 1e-5 .* rand(20),
+#     aa_order = protein_letters,
+# )
+#     all_coords = []
+
+#     for (aa_idx, aa) in enumerate(aa_order)
+#         xs, ys = Float64[], Float64[]
+#         glyph = get(alphabet_coords, aa, BASIC_RECT)
+
+#         for (pos_idx, col) in enumerate(eachcol(pfm))
+#             col_view = @view col[1:20]
+#             ic_height = ic_height_here(col_view; background=background)
+#             adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+#             y_offset = compute_vertical_offset(adjusted_heights, aa_idx)
+
+#             push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
+#             push!(xs, NaN)
+#             push!(ys, compute_glyph_y_coords(adjusted_heights[aa_idx], glyph.y, y_offset, logo_y_offset)...)
+#             push!(ys, NaN)
+#         end
+
+#         push!(all_coords, (aa, (; xs, ys)))
+#     end
+
+#     return all_coords
+# end
+
+function freq2xy_general(
+    pfm,
+    chars;
+    background = nothing,
+    beta = 1.0,
     logo_x_offset = 0.0,
     logo_y_offset = 0.0,
     alphabet_coords = ALPHABET_GLYPHS,
-    very_small_perturb = 1e-5 .* rand(4),
+    very_small_perturb = nothing,
 )
-    # @assert sum(pfm, dims=1) .≈ 1 "pfm must be a probability matrix"
+    n_chars = length(chars)
+    background === nothing && (background = fill(1 / n_chars, n_chars))
+    very_small_perturb === nothing && (very_small_perturb = 1e-5 .* rand(n_chars))
+
     all_coords = []
-    charnames = rna ? rna_letters : dna_letters
-    # For each character (row):
-    #   Collect all positions and heights of that character's polygon
-    for (j, c) in enumerate(charnames)
+
+    for (idx, c) in enumerate(chars)
         xs, ys = Float64[], Float64[]
-        # Get character glyph coords; o/w get the simple rectangle
-        charglyph = get(alphabet_coords, c, BASIC_RECT)
-        # for each postion in the sequence:
-        #     1. Push in the coords for the character's polygon
-        #     2. Adjust y_height based on information content and frequency 
-        for (xoffset, col) in enumerate(eachcol(pfm))
-            acgt = @view col[1:4]
-            ic_height = ic_height_here(col; background = background)
-            adjusted_height = ic_height .* acgt .+ very_small_perturb
-            yoffset = sum(adjusted_height[adjusted_height.<adjusted_height[j]])
-            push!(
-                xs,
-                (
-                    (beta * 1.2) .* charglyph.x .+ (1 / ((beta * 0.9))) * 0.35 .+ xoffset .+
-                    (logo_x_offset - 1)
-                )...,
-            )
+        glyph = get(alphabet_coords, c, BASIC_RECT)
+
+        for (pos_idx, col) in enumerate(eachcol(pfm))
+            col_view = @view col[1:n_chars]
+            ic_height = ic_height_here(col_view; background = background)
+            adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+            y_offset = compute_vertical_offset(adjusted_heights, idx)
+
+            push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
             push!(xs, NaN)
-            push!(ys, (adjusted_height[j] .* charglyph.y .+ yoffset .+ logo_y_offset)...)
+            push!(ys, compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)...)
             push!(ys, NaN)
         end
+
         push!(all_coords, (c, (; xs, ys)))
     end
-    all_coords
+
+    return all_coords
 end
-
-
 
 @userplot LogoPlot
 @recipe function f(
@@ -68,19 +147,14 @@ end
     if !setup_off
         num_cols = size(data.args[1], 2)
         xlim_here = !tight ? (xlim_min, num_cols + 2) : (0.5, num_cols + 0.5)
-        # @info "num_cols: $num_cols"
         ylims --> (0, protein ? 4.32 : ylim_max)
         xlims --> xlim_here
-        # logo_size = (_width_factor_(num_cols)*num_cols, logo_height)
         logo_size = 3 .* (_width_factor_(num_cols) * num_cols, logo_height)
         ticks --> :native
         yticks --> (protein ? yticks_protein : yticks)  # Ensure ticks are generated
         ytickfontcolor --> :black
         ytick_direction --> :out
-
-        # framestyle --> :none
         gridlinewidth --> 0.75
-
         yminorticks --> yminorticks
         ytickfont --> font(logo_font_size, logo_font)
         xtickfontcolor --> :black
@@ -91,9 +165,7 @@ end
         legend --> false
         tickdir --> :out
         grid --> false
-        # margin --> _margin_
         margin --> 125Plots.mm
-        # thickness_scaling --> thickness_scaling
         thickness_scaling --> 0.2
         size --> logo_size
         # framestyle --> :semi
@@ -102,25 +174,23 @@ end
     dpi --> dpi
     alpha --> alpha
     pfm = data.args[1]
-    background =
-        length(data.args) ≥ 2 ? data.args[2] : (protein ? fill(1 / 20, 20) : fill(0.25, 4))
-    coords =
-        protein ?  # <-- changed
-        freq2xy_protein(
-            pfm;
-            background = background,
-            beta = beta,  # <-- changed
-            logo_x_offset = logo_x_offset,
-            logo_y_offset = logo_y_offset,
-        ) :
-        freq2xy(
-            pfm;
-            background = background,
-            rna = rna,
-            beta = beta,
-            logo_x_offset = logo_x_offset,
-            logo_y_offset = logo_y_offset,
-        )
+
+    background = if length(data.args) ≥ 2
+            data.args[2]
+        else
+            protein ? fill(1 / 20, 20) : fill(0.25, 4)
+        end
+    chars = 
+        protein ? protein_letters :
+        rna ? rna_letters :
+        dna_letters
+    coords = freq2xy_general(
+        pfm, chars;
+        background = background,
+        beta = beta,
+        logo_x_offset = logo_x_offset,
+        logo_y_offset = logo_y_offset,
+    )
 
     if uniform_color
         if pos
