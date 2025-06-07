@@ -7,7 +7,7 @@
 
 # What is this?
 
-EntroPlots is a package for plotting [position weight matrices (PWMs)](https://en.wikipedia.org/wiki/Position_weight_matrix),  which is commonly used to characterize and visualize motifs — the binding sites where proteins interact with DNA or RNA.
+EntroPlots is a Julia package for visualizing **position weight matrices (PWMs)**—a widely used representation of biological motifs that indicate DNA or RNA binding preferences. It offers flexible options for plotting classic sequence logos, highlighting specific regions, and visualizing crosslinking signals or protein motifs.
 
 ## Table of contents
 * [Installation](#Installation)
@@ -17,6 +17,7 @@ EntroPlots is a package for plotting [position weight matrices (PWMs)](https://e
    - [Plot your PWMs with crosslinking tendencies](#Plot-your-PWMs-with-crosslinking-tendencies)
       - [Multiplexed crosslinking tendencies](#Multiplexed-crosslinking-tendencies)
    - [Plot your PWM with highlighted regions](#Plot-your-PWM-with-highlighted-regions)
+* [Acknowledgements](#Acknowledgement)
 <!-- * [Some-definitions](#Some-definitions) -->
 
 
@@ -29,7 +30,7 @@ Pkg.add("EntroPlots")
 
 # Usage
 
-## Plot your typical PWMs
+## Plot a typical PWM
 ```
 using EntroPlots
 
@@ -49,25 +50,23 @@ Now plot it:
 ```
 logoplot(pfm, background)
 ```
-This generates:
+This produces:
 
 ![pfm](demo/demo.png)
 
-The plot shows:
+with 
 - X-axis: Positions in the PFM
 - Y-axis: Information content (in bits)
-
-Each stack represents the relative contribution of each base at a given position.
+- Stacked letters: Contribution of each nucleotide
 
 The `background` is an array representing the background probabilities for A, C, G, and T. These should sum to 1. In this example, a uniform background of `[0.25, 0.25, 0.25, 0.25]` is used, assuming equal probabilities for each base.
 
-## Defaults and Options
-Calling `logoplot(pfm)` uses the default uniform background:
+To use a uniform background, you may simply call:
 ```
 logoplot(pfm)
 ```
 
-You can remove axes and margins for a cleaner look:
+To create a minimal plot without axes/margins:
 
 ```
 logoplot(pfm; _margin_=0Plots.mm, tight=true, yaxis=false, xaxis=false)
@@ -77,19 +76,20 @@ Output:
 
 ![pfm](demo/no_margin.png)
 
-### Save the PWMs
+### Saving PWM Plots
 To save your plot, use `save_logoplot(pfm, background, save_name)`. For example:
 ```
 save_logoplot(pfm, background, "tmp/logo.png")
 ```
-You can also omit the background argument to use the default uniform background:
+If you want to use the default uniform background:
 ```
 save_logoplot(pfm, "tmp/logo.png")
 ```
 By default, this assumes `[0.25, 0.25, 0.25, 0.25]` as the background probabilities.
 
-## Plot your PWM with highlighted regions
-Sometimes, you may want to highlight specific columns in your PWM—such as known transcription factor binding sites within a longer sequence (e.g. see figure 4 in this [paper](https://academic.oup.com/bioinformatics/article/39/6/btad378/7192989)). To do so, provide a vector of `UnitRange{Int}` that specifies the regions of interest. For example:
+# Advanced Features
+## Highlighting Regions
+You can highlight specific regions of a PWM using ranges:
 
 ```
 highlighted_regions1=[4:8]
@@ -102,14 +102,17 @@ This will produce:
 
 ![highlight-pfm](demo/demo4.png)
 
-# For proteins
+# Protein Motif Logos
 
-### Example protein position frequency matrix (PFM)
+To visualize motifs for proteins (20 amino acids), use:
 
 ```
+# generate an example 
 matrix = rand(20, 25)
 pfm_protein = matrix ./ sum(matrix, dims=1)
 reduce_entropy!(pfm_protein)
+
+# plot
 logoplot(pfm_protein; protein=true)
 ```
 
@@ -120,7 +123,7 @@ save_logoplot(pfm_protein, "logo_protein.png"; protein=true)
 ![highlight-pfm](demo/logo_protein.png)
 
 
-With highlight:
+With region highlights:
 ```
 logoplot_with_highlight(pfm_protein, [2:5, 8:12, 21:25]; protein=true)
 ```
