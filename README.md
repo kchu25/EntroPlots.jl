@@ -7,7 +7,16 @@
 
 # What is this?
 
-EntroPlots is a Julia package for visualizing **position weight matrices (PWMs)**—a widely used representation of biological motifs that indicate DNA or RNA binding preferences. It offers flexible options for plotting classic sequence logos, highlighting specific regions, and visualizing crosslinking signals or protein motifs.
+EntroPlots.jl is a Julia package for visualizing **position weight matrices (PWMs)**—a common representation of sequence motifs that reflect DNA, RNA, or protein binding preferences. It supports flexible, publication-ready logo plots with features including:
+
+- Custom background probabilities
+- Region highlighting
+- Protein motif visualization (20 amino acids)
+- Clean, minimal styling
+- Output to PNG or SVG
+
+EntroPlots is designed for researchers working in computational biology and bioinformatics who need interpretable and high-quality motif visualizations.
+
 
 ## Table of contents
 * [Installation](#Installation)
