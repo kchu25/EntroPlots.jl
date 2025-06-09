@@ -59,7 +59,7 @@ function logoplot_with_arrow_gaps(
         height_top = height_top,
         basic_fcn = basic_fcn
     )
-
+    @info "pfm_starts $(pfm_starts)"
     # plot the logo with arrow shapes
     p = nothinglogo(total_pfm_cols + total_d_cols; xaxis_on = false)
 
@@ -79,6 +79,47 @@ function logoplot_with_arrow_gaps(
     end
 
     for (_, col) in enumerate(eachcol(coords_mat))
+        arrowplot!(p, col; arrow_color_palette = arrow_color_palette)
+    end
+    return p
+end
+
+function logoplot_with_rect_gaps(
+    pfms, pfms_offsets, total_length;
+    arrow_shape_scale_ratio::Real = 1.0,
+    height_top::Real = 2.0,
+    dpi = 65,
+    rna= false,
+    uniform_color = true,
+    basic_fcn = get_rectangle_basic
+    )
+
+    coords_mat, total_pfm_cols, total_d_cols = 
+        make_rect_shape(pfms, pfms_offsets, total_length;
+        arrow_shape_scale_ratio = arrow_shape_scale_ratio,
+        height_top = height_top,
+        basic_fcn = basic_fcn)
+
+    @info "total PFM columns: $(total_pfm_cols), total D columns: $(total_d_cols)"
+
+    p = nothinglogo(total_pfm_cols + total_d_cols; xaxis_on = false)
+    @info "pfms_offsets: $(pfms_offsets)"
+    for (ind, pfm) in enumerate(pfms)
+        logo_x_offset = pfms_offsets[ind]
+        # @info "Plotting logo for PFM $(ind) with offset $(logo_x_offset)"
+        logoplot!(
+            p,
+            pfm,
+            EntroPlots.bg;
+            dpi = dpi,
+            rna = rna,
+            setup_off = true,
+            logo_x_offset = logo_x_offset,
+            uniform_color = uniform_color,
+        )
+    end
+    for (_, col) in enumerate(eachcol(coords_mat))
+        # @info "col: $(col)"
         arrowplot!(p, col; arrow_color_palette = arrow_color_palette)
     end
     return p

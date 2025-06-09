@@ -14,15 +14,16 @@ function get_rectangle_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
             positive: shift to the right
             negative: shift to the left
     =#
-    arrow_line_width = line_scale * 4.0
+    # arrow_line_width = line_scale * 4.0
     x =
         [
-            -arrow_line_width,
-            arrow_line_width,
-            arrow_line_width,
-            -arrow_line_width,
+            0.0,
+            1.0 * line_scale,
+            1.0 * line_scale,
+            0.0
         ] .+ x_offset
-    y = [1.02, 1.02, 0.98, 0.98]
+    # y = [1.005, 1.005, 0.995, 0.995]
+    y = [1.015, 1.015, 0.985, 0.985]
         return shape(x, y)
         return shape(-x, y)
 end
@@ -226,7 +227,7 @@ function make_in_between_basic(
             ),
         )
     else
-        push!(coords,  basic_fcn(; line_scale = arrow_line_scale))
+        push!(coords,  basic_fcn(; line_scale = num_bt-1))
     end
 
     # return coords
@@ -291,31 +292,14 @@ function obtain_pfm_regions_and_dstarts(pfms, num_cols_each_d; d_ϵ = 0.5)
 end
 
 
-function obtain_pfm_regions_and_dstarts_d()
-end
+# function obtain_pfm_regions_and_dstarts_d()
+# end
 
+function process_coords_mat(coords_mat, weights, d_starts; 
+        arrow_shape_scale_ratio = 0.8,
+        height_top=2.0, 
+        basic_fcn = get_arrow_basic)
 
-function make_arrow_shapes(
-    ds_mats,
-    weights,
-    dist_cols::Int,
-    pfms;
-    arrow_shape_scale_ratio = 0.8,
-    height_top = 2.0,
-    basic_fcn = get_arrow_basic,
-)
-    coords_mat = map(
-        x -> make_in_between_basic(x; arrow_line_scale = log(x), 
-        basic_fcn = basic_fcn),
-        ds_mats,
-    )
-    # scale the width of each arrow-shapes and 
-    # get the number of columns for each "column"
-    num_cols_each_d = num_col_each_col!(coords_mat, dist_cols)
-
-    pfm_starts, d_starts = obtain_pfm_regions_and_dstarts(pfms, num_cols_each_d)
-    @info "pfm_starts: $pfm_starts d_starts: $d_starts"
-    @info "num_cols_each_d: $num_cols_each_d"
     # shift heights
     scaled_heights = weights .* height_top
     scale_height!.(coords_mat, scaled_heights)
@@ -346,8 +330,100 @@ function make_arrow_shapes(
     for (ind, right_inc) in enumerate(d_starts)
         coords_mat[:, ind] .= shift_right.((coords_mat[:, ind]), right_inc)
     end
+    return coords_mat
+end
+
+
+function process_coords_mat_rect(coords_mat, d_starts;
+    arrow_shape_scale_ratio = 0.8,
+    height_top = 2.0, 
+    basic_fcn = get_rectangle_basic
+    )
+
+    # shift the arrow-shapes upwards
+    for i in axes(coords_mat, 1)
+        for j in axes(coords_mat, 2)
+            coords_mat[i, j] = shift_up.(coords_mat[i, j], 0.5 * height_top)
+        end
+    end
+
+    # shift right the arrow-shapes
+    for (ind, right_inc) in enumerate(d_starts)
+        coords_mat[:, ind] .= shift_right.((coords_mat[:, ind]), right_inc)
+    end
+    return coords_mat
+end
+
+
+function init_coords_mats(ds_mats; basic_fcn=get_arrow_basic)
+    coords_mat = map(
+        x -> make_in_between_basic(x; arrow_line_scale = log(x), 
+        basic_fcn = basic_fcn),
+        ds_mats,
+    )
+    return coords_mat
+end
+
+function make_arrow_shapes(
+    ds_mats,
+    weights,
+    dist_cols::Int,
+    pfms;
+    arrow_shape_scale_ratio = 0.8,
+    height_top = 2.0,
+    basic_fcn = get_arrow_basic,
+)
+    coords_mat = init_coords_mats(ds_mats; basic_fcn = basic_fcn)
+
+    @info "$coords_mat"
+    # scale the width of each arrow-shapes and 
+    # get the number of columns for each "column"
+    num_cols_each_d = num_col_each_col!(coords_mat, dist_cols)
+
+    pfm_starts, d_starts = obtain_pfm_regions_and_dstarts(pfms, num_cols_each_d)
+    @info "pfm_starts: $pfm_starts d_starts: $d_starts"
+    @info "num_cols_each_d: $num_cols_each_d"
+
+    @info "d_starts: $d_starts"
+
+    # coords_mat = process_coords_mat(coords_mat, weights, d_starts; 
+    #     arrow_shape_scale_ratio = arrow_shape_scale_ratio,
+    #     height_top = height_top,
+    #     basic_fcn = basic_fcn)
 
     total_pfm_cols = size.(pfms, 2) |> sum
     total_d_cols = num_cols_each_d |> sum
-    return coords_mat, pfm_starts, total_pfm_cols, total_d_cols
+    return coords_mat, pfm_starts, total_pfm_cols, total_d_cols 
 end
+
+function make_rect_shape(pfms, pfm_starts, total_len;
+    arrow_shape_scale_ratio = 0.8,
+    height_top = 2.0,
+    basic_fcn = get_rectangle_basic
+    )
+
+    d_starts, d_cols = get_spacers(pfms, pfm_starts, total_len)
+
+    # num_cols_each_d = num_col_each_col!(coords_mat, sum(d_cols))
+
+    @info "d_starts: $d_starts d_cols: $d_cols"
+    coords_mat = init_coords_mats(d_cols; basic_fcn = basic_fcn)
+
+    @info "coords_mat-1: $(coords_mat[1])"
+
+    coords_mat = process_coords_mat_rect(coords_mat, d_starts; 
+        arrow_shape_scale_ratio = arrow_shape_scale_ratio,
+        height_top = height_top,
+        basic_fcn = basic_fcn)
+        
+    @info "coords_mat-1: $(coords_mat[1])"
+    @info "coords_mat-2: $(coords_mat[2])"
+
+    total_pfm_cols = size.(pfms, 2) |> sum
+    total_d_cols = d_cols |> sum
+
+
+    return coords_mat, total_pfm_cols, total_d_cols
+end
+
+

@@ -27,23 +27,59 @@ pfms = [
 
 ds_mat = [2 4 4;]
 
-weights = [1]
+# weights = [1]
 weights = [0.05]
-
-
-
-
-
-
-
 
 
 
 
 p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, )
 
+
+
 p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, 
 basic_fcn = get_rectangle_basic)
+
+
+pfms_offsets = [1, 12, 23, 31] .- 1
+pfms_offsets = [6, 15, 23, 31] 
+
+logoplot_with_rect_gaps(
+    pfms, pfms_offsets, 45,)
+
+
+
+
+
+pfms
+
+
+size.(pfms)
+
+
+function check_valid_indexing(pfms, indices)
+    @assert length(pfms) == length(indices) "The number of PFMs should match the number of indices provided."
+    for i = 1:(length(pfms)-1)
+        i_cols = size(pfms[i],2)
+        i_start = indices[i]
+        if i_start + i_cols > indices[i+1]
+            error("PFM $(i) with start index $(i_start) 
+                of column count $(i_cols) exceeds the 
+                    next PFM's start index $(indices[i+1]).")
+        end
+    end
+    return true
+end
+
+
+check_valid_indexing(pfms, indices) 
+
+
+
+
+
+
+
 
 
 
