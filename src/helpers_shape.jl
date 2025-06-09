@@ -3,6 +3,30 @@ mutable struct shape
     y::Vector{Float64}
 end
 
+function get_rectangle_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
+    #=
+        the horizontal line 
+            --------
+            --------
+        part of the arrow (before the arrow head)
+
+        x_offset:
+            positive: shift to the right
+            negative: shift to the left
+    =#
+    arrow_line_width = line_scale * 4.0
+    x =
+        [
+            -arrow_line_width,
+            arrow_line_width,
+            arrow_line_width,
+            -arrow_line_width,
+        ] .+ x_offset
+    y = [1.02, 1.02, 0.98, 0.98]
+        return shape(x, y)
+        return shape(-x, y)
+end
+
 function get_arrow_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
     #=
         the horizontal line 
@@ -166,38 +190,44 @@ function make_in_between_basic(
     word_increment = 4.0,
     arrow_increment = 1.0,
     arrow_line_scale = 1.25,
+    basic_fcn = get_arrow_basic
 )
-    GLYPHS_2_adjusted = merge(
-        Dict("$i" => two_adjusted_glyphs(ALPHABET_GLYPHS["$i"]) for i = 0:9), # 0-9
-        Dict(
-            "b" => two_adjusted_glyphs(ALPHABET_GLYPHS["b"]),
-            "p" => two_adjusted_glyphs(ALPHABET_GLYPHS["p"]),
-        ),
-    )# b and p
     num_bt = Int(num_bt) # TODO see if this is necessary
-    in_bt_str = vcat(split("$num_bt", ""), ["b", "p"])
     coords = shape[]
-    k = 0.0
-    for i in in_bt_str
-        g = copy(GLYPHS_2_adjusted["$i"])
-        push!(coords, shift_right(g, k))
-        k += word_increment
-    end
 
-    push!(
-        coords,
-        shift_right(
-            get_arrow_basic(; line_scale = arrow_line_scale),
-            get_right_most_point(coords) + arrow_increment,
-        ),
-    )
-    push!(
-        coords,
-        shift_left(
-            get_arrow_basic(; line_scale = arrow_line_scale, right = false),
-            arrow_increment,
-        ),
-    )
+    if basic_fcn == get_arrow_basic
+        GLYPHS_2_adjusted = merge(
+            Dict("$i" => two_adjusted_glyphs(ALPHABET_GLYPHS["$i"]) for i = 0:9), # 0-9
+            Dict(
+                "b" => two_adjusted_glyphs(ALPHABET_GLYPHS["b"]),
+                "p" => two_adjusted_glyphs(ALPHABET_GLYPHS["p"]),
+            ),
+        )# b and p
+        in_bt_str = vcat(split("$num_bt", ""), ["b", "p"])
+        k = 0.0
+        for i in in_bt_str
+            g = copy(GLYPHS_2_adjusted["$i"])
+            push!(coords, shift_right(g, k))
+            k += word_increment
+        end
+
+        push!(
+            coords,
+            shift_right(
+                basic_fcn(; line_scale = arrow_line_scale),
+                get_right_most_point(coords) + arrow_increment,
+            ),
+        )
+        push!(
+            coords,
+            shift_left(
+                basic_fcn(; line_scale = arrow_line_scale, right = false),
+                arrow_increment,
+            ),
+        )
+    else
+        push!(coords,  basic_fcn(; line_scale = arrow_line_scale))
+    end
 
     # return coords
     coords = shift_right.(coords, get_left_most_point(coords) * -1.0)  # left aligned to the origin
@@ -244,7 +274,7 @@ function num_col_each_col!(coords_mat::Matrix{Vector{shape}}, given_len)
     return num_cols_each
 end
 
-function obtain_pfm_regions_and_dstarts(pfms, num_cols_each; d_ϵ = 0.5)
+function obtain_pfm_regions_and_dstarts(pfms, num_cols_each_d; d_ϵ = 0.5)
     pfm_num_cols_each = size.(pfms, 2)
     pfm_starts = Int[]
     d_starts = Int[]
@@ -252,13 +282,18 @@ function obtain_pfm_regions_and_dstarts(pfms, num_cols_each; d_ϵ = 0.5)
     for (ind, p_col) in enumerate(pfm_num_cols_each)
         push!(pfm_starts, offset)
         offset += p_col
-        if ind ≤ length(num_cols_each)
+        if ind ≤ length(num_cols_each_d)
             push!(d_starts, offset)
-            offset += num_cols_each[ind]
+            offset += num_cols_each_d[ind]
         end
     end
     return pfm_starts, d_starts .+ d_ϵ
 end
+
+
+function obtain_pfm_regions_and_dstarts_d()
+end
+
 
 function make_arrow_shapes(
     ds_mats,
@@ -267,16 +302,20 @@ function make_arrow_shapes(
     pfms;
     arrow_shape_scale_ratio = 0.8,
     height_top = 2.0,
+    basic_fcn = get_arrow_basic,
 )
     coords_mat = map(
-        x -> make_in_between_basic(x; arrow_line_scale = 0.25 * log(max(x, 5))),
+        x -> make_in_between_basic(x; arrow_line_scale = log(x), 
+        basic_fcn = basic_fcn),
         ds_mats,
     )
     # scale the width of each arrow-shapes and 
     # get the number of columns for each "column"
-    num_cols_each = num_col_each_col!(coords_mat, dist_cols)
-    pfm_starts, d_starts = obtain_pfm_regions_and_dstarts(pfms, num_cols_each)
+    num_cols_each_d = num_col_each_col!(coords_mat, dist_cols)
 
+    pfm_starts, d_starts = obtain_pfm_regions_and_dstarts(pfms, num_cols_each_d)
+    @info "pfm_starts: $pfm_starts d_starts: $d_starts"
+    @info "num_cols_each_d: $num_cols_each_d"
     # shift heights
     scaled_heights = weights .* height_top
     scale_height!.(coords_mat, scaled_heights)
@@ -298,7 +337,8 @@ function make_arrow_shapes(
     height_increments = get_height_increments(scaled_heights)
     for i in axes(coords_mat, 1)
         for j in axes(coords_mat, 2)
-            coords_mat[i, j] = shift_up.(coords_mat[i, j], height_increments[i])
+            up = basic_fcn == get_arrow_basic ? height_increments[i] : (0.5 * height_top)
+            coords_mat[i, j] = shift_up.(coords_mat[i, j], up)
         end
     end
 
@@ -308,6 +348,6 @@ function make_arrow_shapes(
     end
 
     total_pfm_cols = size.(pfms, 2) |> sum
-    total_d_cols = num_cols_each |> sum
+    total_d_cols = num_cols_each_d |> sum
     return coords_mat, pfm_starts, total_pfm_cols, total_d_cols
 end

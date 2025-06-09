@@ -38,6 +38,7 @@ function logoplot_with_arrow_gaps(
     uniform_color = true,
     dpi = 65,
     rna = false,
+    basic_fcn = get_arrow_basic
 )
 
     @assert length(pfms) - 1 == size(ds_mats, 2) "The number of columns in ds_mats should be equal to the length of pfms - 1"
@@ -56,6 +57,7 @@ function logoplot_with_arrow_gaps(
         pfms;
         arrow_shape_scale_ratio = arrow_shape_scale_ratio,
         height_top = height_top,
+        basic_fcn = basic_fcn
     )
 
     # plot the logo with arrow shapes
@@ -63,10 +65,11 @@ function logoplot_with_arrow_gaps(
 
     for (ind, pfm) in enumerate(pfms)
         logo_x_offset = pfm_starts[ind]
+        @info "Plotting logo for PFM $(ind) with offset $(logo_x_offset)"
         logoplot!(
             p,
             pfm,
-            PlotPWM.bg;
+            EntroPlots.bg;
             dpi = dpi,
             rna = rna,
             setup_off = true,
@@ -80,6 +83,7 @@ function logoplot_with_arrow_gaps(
     end
     return p
 end
+
 
 function save_logo_w_arrows(
     pfms,
@@ -96,3 +100,5 @@ function save_logo_w_arrows(
     p = logoplot_with_arrow_gaps(pfms, ds_mats, weights; dpi = dpi, rna = rna)
     savefig(p, save_name)
 end
+
+

@@ -142,6 +142,7 @@ end
     pos = false,
     color_positive = "#FFA500",
     color_negative = "#0047AB",
+    xticks_nothing = true
 )
 
     if !setup_off
@@ -211,12 +212,20 @@ end
         end
     end
     if !setup_off
-        xticks --> 1:1:size(data.args[1], 2) # xticks needs to be placed here to avoid fractional xticks? weird
+        xticks --> 1:1:size(pfm, 2) # xticks needs to be placed here to avoid fractional xticks? weird
+    else
+        @info "Setting xticks to 1:1:size(pfm, 2) to avoid fractional xticks"
+        
+        if xticks_nothing
+            xticks --> nothing  # Remove x-ticks
+        else
+            xticks --> (1:1:size(pfm, 2), 3:size(pfm,2)+2)  # Remove x-ticks
+        end
+        # xticks --> nothing # Remove x-ticks
     end
     # xtickslabelcolor --> :white
-    xticks --> nothing,   # Remove x-ticks
-    xticklabels --> nothing  # Remove x-tick labels
-
+    # xticks --> nothing,   # Remove x-ticks
+    # xticklabels --> nothing  # Remove x-tick labels
 end
 
 # check if there's any overlap in the highlighted region
