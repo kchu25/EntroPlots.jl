@@ -55,7 +55,7 @@ end
         yminorticks --> yminorticks
         ytickfont --> font(logo_font_size, logo_font)
         xtickfontcolor --> :black
-        xticks --> 1:1:num_cols
+        # xticks --> 1:1:num_cols
         xtickfontsize --> xtickfontsize
         xaxis && (xaxis --> xaxis)
         yaxis && (yaxis --> yaxis)
@@ -70,4 +70,5 @@ end
         dpi --> dpi
     end
     xticks --> 1:1:data.args[1]
+    # xticks --> (1:1:data.args[1], fill("", data.args[1]))
 end
