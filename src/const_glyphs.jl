@@ -5528,7 +5528,7 @@ PALETTE_neg = Dict(
 )
 
 const arrow_color_palette =
-    ["#EC771B", "#3E359C", "#12802E", "#6C73C2", "#833D73", "#C26b2F", "#4E290F"]
+    ["#000000", "#3E359C", "#12802E", "#6C73C2", "#833D73", "#C26b2F", "#4E290F"]
 
 
 const crosslink_palette = Dict(

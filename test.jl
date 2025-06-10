@@ -76,7 +76,12 @@ check_valid_indexing(pfms, indices)
 
 
 
+using DataFrames
 
+df = DataFrame(a = 1:5, b = rand(5))
+
+# Keep only rows where :a > 2 (i.e., remove others)
+filter!(:a => x -> x .> 2, df)
 
 
 
