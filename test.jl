@@ -43,9 +43,15 @@ basic_fcn = get_rectangle_basic)
 
 pfms_offsets = [1, 12, 23, 31] .- 1
 pfms_offsets = [6, 15, 23, 31] 
+starting_indices = [28, 66, 190, 250]
+
+total_len = 45
+
+
+xtick_labels = make_xtick_labels(pfms, pfms_offsets, starting_indices, total_len)
 
 logoplot_with_rect_gaps(
-    pfms, pfms_offsets, 45,)
+    pfms, pfms_offsets, starting_indices, total_len)
 
 
 

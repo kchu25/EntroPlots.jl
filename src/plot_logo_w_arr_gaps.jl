@@ -84,8 +84,21 @@ function logoplot_with_arrow_gaps(
     return p
 end
 
+function make_xtick_labels(pfms, pfms_offsets, starting_indices, total_len)
+    xtick_labels = fill(" ", total_len);
+    for (index, offset) in enumerate(pfms_offsets)
+        pfm_here = pfms[index];
+        starting_indices_here = starting_indices[index]
+        pfm_len_here = size(pfm_here,2)
+        xtick_labels[offset+1:offset+pfm_len_here] = 
+            string.([starting_indices_here+j for j in 0:(pfm_len_here-1)])
+    end
+    return xtick_labels
+end
+
+
 function logoplot_with_rect_gaps(
-    pfms, pfms_offsets, total_length;
+    pfms, pfms_offsets, starting_indices, total_length;
     arrow_shape_scale_ratio::Real = 1.0,
     height_top::Real = 2.0,
     dpi = 65,
@@ -95,14 +108,19 @@ function logoplot_with_rect_gaps(
     )
 
     coords_mat, total_pfm_cols, total_d_cols = 
-        make_rect_shape(pfms, pfms_offsets, total_length;
+        EntroPlots.make_rect_shape(pfms, pfms_offsets, total_length;
         arrow_shape_scale_ratio = arrow_shape_scale_ratio,
         height_top = height_top,
         basic_fcn = basic_fcn)
 
     @info "total PFM columns: $(total_pfm_cols), total D columns: $(total_d_cols)"
 
-    p = nothinglogo(total_pfm_cols + total_d_cols; xaxis_on = false)
+    @assert (total_pfm_cols + total_d_cols) == total_length "The total length of the logo should match the sum of PFM and D columns."
+
+    # make the xtick labels
+    xtick_labels = make_xtick_labels(pfms, pfms_offsets, starting_indices, total_length)
+
+    p = nothinglogo(total_length; xaxis_on = false, xtick_labels = xtick_labels)
     @info "pfms_offsets: $(pfms_offsets)"
     for (ind, pfm) in enumerate(pfms)
         logo_x_offset = pfms_offsets[ind]

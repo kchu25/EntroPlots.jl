@@ -27,6 +27,7 @@ end
     crosslink = false,
     xaxis_on = true,
     tight = false,
+    xtick_labels = nothing
 )
 
     logo_size_height = crosslink ? logo_height + 115 : logo_height
@@ -69,6 +70,10 @@ end
         framestyle --> :zerolines
         dpi --> dpi
     end
-    xticks --> 1:1:data.args[1]
+    tick_range = 1:1:data.args[1] 
+    xticks_label = isnothing(xtick_labels) ? tick_range : (tick_range, xtick_labels)
+    # xticks --> tick_range
+    # xticks --> 
     # xticks --> (1:1:data.args[1], fill("", data.args[1]))
+    xticks --> xticks_label
 end
