@@ -4,7 +4,6 @@ using Revise
 using Plots
 using EntroPlots
 
-
 pfms = [
     [0.1 0.2 0.3 0.4 0.5 0.6;
      0.3 0.2 0.1 0.2 0.1 0.1;
@@ -24,65 +23,60 @@ pfms = [
      0.2 0.2 0.3 0.3 0.35 0.35],
 ]
 
-
 reduce_entropy!.(pfms)
 
-ds_mat = [2 4 4;]
+# ds_mat = [2 4 4;]
 
-# weights = [1]
-weights = [0.05]
+# # weights = [1]
+# weights = [0.05]
+starting_indices = [28, 66, 190, 250]
+total_len = 290
+
+# offsets_from_start, total_len_adjusted = 
+#     EntroPlots.get_offset_from_start(starting_indices, pfms, total_len)
+
+logoplot_with_rect_gaps(
+    pfms, starting_indices, total_len; 
+    )
+
+# p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, )
 
 
 
-
-p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, )
-
-
-
-p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, 
-basic_fcn = get_rectangle_basic)
+# p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, 
+# basic_fcn = get_rectangle_basic)
 
 
 # pfms_offsets = [1, 12, 23, 31] .- 1
 pfms_offsets = [6, 15, 23, 31] 
-starting_indices = [28, 66, 190, 250]
+ending_indices = starting_indices .+ size.(pfms, 2) .- 1
 
-total_len = 45
-
-
-#= 
-    Each PFM has its own spacings, characterized by start:end by UnitRange.
-    Check if the UnitRanges overlap.
-=#
 
 @assert all(starting_indices .== sort(starting_indices)) "Starting indices must be sorted."
 
-function get_ranges_pfm(pfms, starting_indices)
-    pfm_lens = size.(pfms, 2)
-    pfm_ranges = [s:s+pfm_lens[index]-1 
-        for (index, s) in enumerate(starting_indices)]
-    return pfm_ranges
-end
-
-function ranges_overlap(r1, r2)
-    a, b = r1.start, r1.stop
-    c, d = r2.start, r2.stop
-    return max(a, c) ≤ min(b, d)
-end
-
-function check_overlap(pfms, starting_indices)
-    pfm_ranges = get_ranges_pfm(pfms, starting_indices)
-    for i in 1:(length(pfm_ranges)-1)
-        for j in (i+1):length(pfm_ranges)
-            if ranges_overlap(pfm_ranges[i], pfm_ranges[j])
-                error("PFM ranges $(pfm_ranges[i]) and $(pfm_ranges[j]) overlap.")
-            end
-        end
-    end
-    return true
-end
+offsets_from_start, total_len_adjusted =
+    get_offset_from_start(starting_indices, pfms, total_len)
 
 
+
+offsets_from_start
+pfms
+total_len
+
+
+
+xtick_labels = EntroPlots.make_xtick_labels(
+    pfms, offsets_from_start, starting_indices, total_len_adjusted)
+
+logoplot_with_rect_gaps(
+    pfms, offsets_from_start, starting_indices, total_len_adjusted
+    )
+
+
+
+total_len = 360
+total_len = 360
+# compute the offset
 
 
 

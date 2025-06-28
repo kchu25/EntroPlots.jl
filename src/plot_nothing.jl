@@ -18,6 +18,8 @@ end
     data::NothingLogo;
     xaxis = false,
     yaxis = false,
+    xt = xtickfontsize,
+    yt = ytickfontsize,
     logo_x_offset = 0.0,
     logo_y_offset = 0.0,
     setup_off = false,
@@ -27,7 +29,7 @@ end
     crosslink = false,
     xaxis_on = true,
     tight = false,
-    xtick_labels = nothing
+    xtick_labels = nothing,
 )
 
     logo_size_height = crosslink ? logo_height + 115 : logo_height
@@ -52,12 +54,14 @@ end
         yticks --> (protein ? yticks_protein : yticks) # Ensure ticks are generated
         ytickfontcolor --> :black
         ytick_direction --> :out
-        ytickfontsize --> ytickfontsize
+        # ytickfontsize --> ytickfontsize
         yminorticks --> yminorticks
         ytickfont --> font(logo_font_size, logo_font)
         xtickfontcolor --> :black
         # xticks --> 1:1:num_cols
-        xtickfontsize --> xtickfontsize
+        ytickfontsize --> yt
+        xtickfontsize --> xt
+        # xtickfontsize --> xtickfontsize
         xaxis && (xaxis --> xaxis)
         yaxis && (yaxis --> yaxis)
         legend --> false

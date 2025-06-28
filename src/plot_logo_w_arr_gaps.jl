@@ -98,32 +98,41 @@ end
 
 
 function logoplot_with_rect_gaps(
-    pfms, pfms_offsets, starting_indices, total_length;
+    pfms, starting_indices, total_length;
     arrow_shape_scale_ratio::Real = 1.0,
     height_top::Real = 2.0,
     dpi = 65,
     rna= false,
     uniform_color = true,
-    basic_fcn = get_rectangle_basic
+    basic_fcn = get_rectangle_basic,
+    # xtickfontsize = xtickfontsize_protein_rect,
+    # ytickfontsize = ytickfontsize_protein_rect,
     )
 
+    offsets_from_start, total_len_adjusted = 
+        EntroPlots.get_offset_from_start(starting_indices, pfms, total_length)
+
     coords_mat, total_pfm_cols, total_d_cols = 
-        EntroPlots.make_rect_shape(pfms, pfms_offsets, total_length;
+        EntroPlots.make_rect_shape(pfms, offsets_from_start, total_len_adjusted;
         arrow_shape_scale_ratio = arrow_shape_scale_ratio,
         height_top = height_top,
         basic_fcn = basic_fcn)
 
     @info "total PFM columns: $(total_pfm_cols), total D columns: $(total_d_cols)"
 
-    @assert (total_pfm_cols + total_d_cols) == total_length "The total length of the logo should match the sum of PFM and D columns."
+    @assert (total_pfm_cols + total_d_cols) == total_len_adjusted "The total length of the logo should match the sum of PFM and D columns."
 
     # make the xtick labels
-    xtick_labels = make_xtick_labels(pfms, pfms_offsets, starting_indices, total_length)
+    xtick_labels = make_xtick_labels(pfms, offsets_from_start, starting_indices, total_len_adjusted)
 
-    p = nothinglogo(total_length; xaxis_on = false, xtick_labels = xtick_labels)
-    @info "pfms_offsets: $(pfms_offsets)"
+    p = nothinglogo(total_len_adjusted; 
+        xaxis_on = false, 
+        xtick_labels = xtick_labels, 
+        xt = xtickfontsize_protein_rect,
+        yt = ytickfontsize_protein_rect,)
+    # @info "pfms_offsets: $(pfms_offsets)"
     for (ind, pfm) in enumerate(pfms)
-        logo_x_offset = pfms_offsets[ind]
+        logo_x_offset = offsets_from_start[ind]
         # @info "Plotting logo for PFM $(ind) with offset $(logo_x_offset)"
         logoplot!(
             p,

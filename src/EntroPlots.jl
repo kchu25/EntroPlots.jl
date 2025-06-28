@@ -10,6 +10,7 @@ include("helpers_spacers.jl")
 include("plot_logo.jl")
 include("plot_logo_w_crosslinks.jl")
 include("plot_nothing.jl")
+include("logo_rect_helpers.jl")
 include("plot_logo_w_arr_gaps.jl")
 
 
