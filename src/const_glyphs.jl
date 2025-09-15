@@ -1,37 +1,41 @@
+"""
+========================================
+ EntroPlots.jl: Glyph Constants
+========================================
+This file defines all glyph constants used in EntroPlots.
+
+Organization:
+    - Letter arrays (RNA, DNA, Protein)
+    - Rectangle helpers
+    - Glyph dictionary (ALPHABET_GLYPHS)
+    - (Add more sections as needed)
+========================================
+"""
+
+# -----------------------------
+# Letter Arrays
+# -----------------------------
 const rna_letters = ["A", "C", "G", "U"]
 const dna_letters = ["A", "C", "G", "T"]
 const protein_letters = [
-    "A",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "K",
-    "L",
-    "M",
-    "N",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "V",
-    "W",
-    "Y",
+        "A", "C", "D", "E", "F", "G", "H", "I", "K", "L",
+        "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y",
 ]
 
+# -----------------------------
+# Rectangle Helpers
+# -----------------------------
 rectangle(x, y, w, h) = (; x = (x .+ [0, w, w, 0]), y = (y .+ [0, 0, h, h]))
-
 const BASIC_RECT = rectangle(0.2, 0.0, 0.6, 1.0)
 const C_RECT = rectangle(0.0, 0.0, 0.5, 1.0)
 
-# stolen from https://github.com/heike/gglogo/blob/master/data/alphabet.rda + added "*" char
-# to add more chars add "<my char>" => (; x=<xcoords>, y=<ycoords>) 
-# XY coords should be vertices of a closed polygon in the unit square. 
-# for best appearence width should be 80-90% of the unit square
+# -----------------------------
+# Glyph Dictionary
+# -----------------------------
+# Source: https://github.com/heike/gglogo/blob/master/data/alphabet.rda + added "*" char
+# To add more chars: "<my char>" => (; x=<xcoords>, y=<ycoords>)
+# XY coords should be vertices of a closed polygon in the unit square.
+# For best appearance, width should be 80-90% of the unit square
 ALPHABET_GLYPHS = Dict{String,NamedTuple}(
     "A" => (
         x = [

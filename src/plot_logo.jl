@@ -1,90 +1,68 @@
+# ===========================
+# EntroPlots Logo Plotting
+# ===========================
+
+# ===========================
+# Utility Functions
+# ===========================
+
+"""
+    compute_adjusted_heights(col_view, ic_height, perturb)
+
+Scale frequencies by information content and add tiny noise for proper stacking.
+"""
 function compute_adjusted_heights(col_view, ic_height, perturb)
-    # Scale frequencies by information content and add tiny noise
     return ic_height .* col_view .+ perturb
 end
 
+"""
+    compute_vertical_offset(adjusted_heights, aa_idx)
+
+Calculate vertical offset for stacking by summing all heights smaller than current character height.
+"""
 function compute_vertical_offset(adjusted_heights, aa_idx)
-    # Sum of all heights smaller than the current aa height for stacking
     return sum(adjusted_heights[adjusted_heights .< adjusted_heights[aa_idx]])
 end
 
+"""
+    compute_glyph_x_coords(glyph_x, beta, pos_idx, logo_x_offset)
+
+Compute x-coordinates for a glyph based on position and scaling factors.
+"""
 function compute_glyph_x_coords(glyph_x, beta, pos_idx, logo_x_offset)
     return (beta * 1.2) .* glyph_x .+ (1 / (beta * 0.9)) * 0.35 .+ pos_idx .+ (logo_x_offset - 1)
 end
 
+"""
+    compute_glyph_y_coords(adjusted_height, glyph_y, y_offset, logo_y_offset)
+
+Compute y-coordinates for a glyph based on height and vertical offset.
+"""
 function compute_glyph_y_coords(adjusted_height, glyph_y, y_offset, logo_y_offset)
     return adjusted_height .* glyph_y .+ y_offset .+ logo_y_offset
 end
 
-# function freq2xy(
-#     pfm;
-#     background = fill(0.25, 4),
-#     rna = false,
-#     beta = 1.0,
-#     logo_x_offset = 0.0,
-#     logo_y_offset = 0.0,
-#     alphabet_coords = ALPHABET_GLYPHS,
-#     very_small_perturb = 1e-5 .* rand(4),
-# )
-#     all_coords = []
-#     charnames = rna ? rna_letters : dna_letters
+# ===========================
+# Main Coordinate Conversion Function
+# ===========================
 
-#     for (idx, c) in enumerate(charnames)
-#         xs, ys = Float64[], Float64[]
-#         charglyph = get(alphabet_coords, c, BASIC_RECT)
+"""
+    freq2xy_general(pfm, chars; background, beta, logo_x_offset, logo_y_offset, alphabet_coords, very_small_perturb)
 
-#         for (pos_idx, col) in enumerate(eachcol(pfm))
-#             col_view = @view col[1:4]
-#             ic_height = ic_height_here(col_view; background = background)
-#             adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
-#             y_offset = compute_vertical_offset(adjusted_heights, idx)
+Convert position frequency matrix (PFM) to x/y coordinates for plotting sequence logos.
 
-#             push!(xs, compute_glyph_x_coords(charglyph.x, beta, pos_idx, logo_x_offset)...)
-#             push!(xs, NaN)
-#             push!(ys, compute_glyph_y_coords(adjusted_heights[idx], charglyph.y, y_offset, logo_y_offset)...)
-#             push!(ys, NaN)
-#         end
+# Arguments
+- `pfm`: Position frequency matrix (rows = characters, columns = positions)
+- `chars`: Vector of character names (e.g., ["A", "C", "G", "T"])
+- `background`: Background frequencies for each character
+- `beta`: Scaling factor for glyph width
+- `logo_x_offset`, `logo_y_offset`: Offset coordinates for positioning
+- `alphabet_coords`: Dictionary mapping characters to glyph coordinates
+- `very_small_perturb`: Small random perturbation to avoid identical heights
 
-#         push!(all_coords, (c, (; xs, ys)))
-#     end
-
-#     return all_coords
-# end
-
-# function freq2xy_protein(
-#     pfm;
-#     background = fill(1 / 20, 20),
-#     beta = 1.0,
-#     logo_x_offset = 0.0,
-#     logo_y_offset = 0.0,
-#     alphabet_coords = ALPHABET_GLYPHS,
-#     very_small_perturb = 1e-5 .* rand(20),
-#     aa_order = protein_letters,
-# )
-#     all_coords = []
-
-#     for (aa_idx, aa) in enumerate(aa_order)
-#         xs, ys = Float64[], Float64[]
-#         glyph = get(alphabet_coords, aa, BASIC_RECT)
-
-#         for (pos_idx, col) in enumerate(eachcol(pfm))
-#             col_view = @view col[1:20]
-#             ic_height = ic_height_here(col_view; background=background)
-#             adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
-#             y_offset = compute_vertical_offset(adjusted_heights, aa_idx)
-
-#             push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
-#             push!(xs, NaN)
-#             push!(ys, compute_glyph_y_coords(adjusted_heights[aa_idx], glyph.y, y_offset, logo_y_offset)...)
-#             push!(ys, NaN)
-#         end
-
-#         push!(all_coords, (aa, (; xs, ys)))
-#     end
-
-#     return all_coords
-# end
-
+# Returns
+Vector of tuples containing character name and (xs, ys) coordinates.
+"""
 function freq2xy_general(
     pfm,
     chars;
@@ -123,6 +101,49 @@ function freq2xy_general(
     return all_coords
 end
 
+# ===========================
+# Main Plotting Recipe
+# ===========================
+
+"""
+    get_sequence_characters(protein, rna)
+
+Return the appropriate character set based on sequence type.
+"""
+function get_sequence_characters(protein::Bool, rna::Bool)
+    return protein ? protein_letters :
+           rna ? rna_letters :
+           dna_letters
+end
+
+"""
+    get_color_palette(uniform_color, pos)
+
+Return the appropriate color palette based on settings.
+"""
+function get_color_palette(uniform_color::Bool, pos::Bool)
+    if uniform_color
+        return pos ? PALETTE_pos : PALETTE_neg
+    end
+    return AA_PALETTE3
+end
+
+"""
+LogoPlot recipe for creating sequence logo plots.
+
+Supports DNA, RNA, and protein sequences with extensive customization options.
+
+# Arguments
+- `data::LogoPlot`: Contains PFM and optional background frequencies
+- `rna::Bool=false`: Set to true for RNA sequences
+- `protein::Bool=false`: Set to true for protein sequences  
+- `setup_off::Bool=false`: Skip plot setup (for overlays)
+- `alpha::Real=1.0`: Transparency level
+- `beta::Real=1.0`: Glyph width scaling factor
+- `uniform_color::Bool=false`: Use uniform coloring scheme
+- `tight::Bool=false`: Use tight plot limits
+- Additional styling parameters available
+"""
 @userplot LogoPlot
 @recipe function f(
     data::LogoPlot;
@@ -144,15 +165,23 @@ end
     color_negative = "#0047AB",
     xticks_nothing = true
 )
-
+    # Extract and validate input data
+    pfm = data.args[1]
+    background = length(data.args) ≥ 2 ? data.args[2] : 
+                 (protein ? fill(1/20, 20) : fill(0.25, 4))
+    
+    # Configure plot settings if not disabled
     if !setup_off
-        num_cols = size(data.args[1], 2)
+        num_cols = size(pfm, 2)
         xlim_here = !tight ? (xlim_min, num_cols + 2) : (0.5, num_cols + 0.5)
+        logo_size = 3 .* (_width_factor_(num_cols) * num_cols, logo_height)
+        
+        # Apply plot settings
         ylims --> (0, protein ? 4.32 : ylim_max)
         xlims --> xlim_here
-        logo_size = 3 .* (_width_factor_(num_cols) * num_cols, logo_height)
+        size --> logo_size
         ticks --> :native
-        yticks --> (protein ? yticks_protein : yticks)  # Ensure ticks are generated
+        yticks --> (protein ? yticks_protein : yticks)
         ytickfontcolor --> :black
         ytick_direction --> :out
         gridlinewidth --> 0.75
@@ -161,30 +190,24 @@ end
         xtickfontcolor --> :black
         ytickfontsize --> (protein ? ytickfontsize_protein : ytickfontsize)
         xtickfontsize --> (protein ? xtickfontsize_protein : xtickfontsize)
-        xaxis && (xaxis --> xaxis)
-        yaxis && (yaxis --> yaxis)
         legend --> false
         tickdir --> :out
         grid --> false
         margin --> 125Plots.mm
         thickness_scaling --> 0.2
-        size --> logo_size
-        # framestyle --> :semi
         framestyle --> :zerolines
+        
+        # Handle axis settings
+        xaxis && (xaxis --> xaxis)
+        yaxis && (yaxis --> yaxis)
     end
+    
+    # Set basic properties
     dpi --> dpi
     alpha --> alpha
-    pfm = data.args[1]
-
-    background = if length(data.args) ≥ 2
-            data.args[2]
-        else
-            protein ? fill(1 / 20, 20) : fill(0.25, 4)
-        end
-    chars = 
-        protein ? protein_letters :
-        rna ? rna_letters :
-        dna_letters
+    
+    # Generate coordinates for all characters
+    chars = get_sequence_characters(protein, rna)
     coords = freq2xy_general(
         pfm, chars;
         background = background,
@@ -192,43 +215,43 @@ end
         logo_x_offset = logo_x_offset,
         logo_y_offset = logo_y_offset,
     )
-
-    if uniform_color
-        if pos
-            palette = PALETTE_pos
-        else
-            palette = PALETTE_neg
-        end
-    end
-
-    for (k, v) in coords
-        color_here = uniform_color ? get(palette, k, :grey) : get(AA_PALETTE3, k, :grey)
+    
+    # Get appropriate color palette
+    palette = get_color_palette(uniform_color, pos)
+    
+    # Create series for each character
+    for (char, coord_data) in coords
+        color_here = uniform_color ? get(palette, char, :grey) : get(palette, char, :grey)
         @series begin
             fill := 0
             lw --> 0
-            label --> k
+            label --> char
             color --> color_here
-            v.xs, v.ys
+            coord_data.xs, coord_data.ys
         end
     end
+    
+    # Handle x-tick settings
     if !setup_off
-        xticks --> 1:1:size(pfm, 2) # xticks needs to be placed here to avoid fractional xticks? weird
+        xticks --> 1:1:size(pfm, 2)
     else
-        @info "Setting xticks to 1:1:size(pfm, 2) to avoid fractional xticks"
-        
         if xticks_nothing
-            xticks --> nothing  # Remove x-ticks
+            xticks --> nothing
         else
-            xticks --> (1:1:size(pfm, 2), 3:size(pfm,2)+2)  # Remove x-ticks
+            xticks --> (1:1:size(pfm, 2), 3:size(pfm,2)+2)
         end
-        # xticks --> nothing # Remove x-ticks
     end
-    # xtickslabelcolor --> :white
-    # xticks --> nothing,   # Remove x-ticks
-    # xticklabels --> nothing  # Remove x-tick labels
 end
 
-# check if there's any overlap in the highlighted region
+# ===========================
+# Highlighting Functions
+# ===========================
+
+"""
+    chk_overlap(highlighted_regions)
+
+Check if any highlighted regions overlap with each other.
+"""
 function chk_overlap(highlighted_regions::Vector{UnitRange{Int}})
     for i = 1:length(highlighted_regions)-1
         if is_overlapping(highlighted_regions[i], highlighted_regions[i+1])
@@ -238,22 +261,43 @@ function chk_overlap(highlighted_regions::Vector{UnitRange{Int}})
     return false
 end
 
+"""
+    check_highlighted_regions(highlighted_regions)
+
+Validate that highlighted regions do not overlap.
+"""
 function check_highlighted_regions(highlighted_regions::Vector{UnitRange{Int}})
     if length(highlighted_regions) > 1
-        # if chk_overlap(highlighted_regions)
-        #     @info "highlighted regions: $highlighted_regions"
-        # end
         @assert !chk_overlap(highlighted_regions) "highlighted_regions shouldn't be overlapping"
     end
 end
 
+"""
+    get_numcols_and_range_complement(pfm, highlighted_regions)
+
+Get number of columns and complement ranges (non-highlighted regions).
+"""
 function get_numcols_and_range_complement(pfm, highlighted_regions::Vector{UnitRange{Int}})
     num_cols = size(pfm, 2)
     range_complement = complement_ranges(highlighted_regions, num_cols)
     return num_cols, range_complement
 end
 
-# plot the logo with highlight
+# ===========================
+# Logo Plotting with Highlighting
+# ===========================
+
+"""
+    logoplot_with_highlight(pfm, background, highlighted_regions; kwargs...)
+
+Plot a sequence logo with specific regions highlighted.
+
+# Arguments
+- `pfm`: Position frequency matrix
+- `background`: Background frequencies
+- `highlighted_regions`: Vector of UnitRange{Int} specifying positions to highlight
+- Additional keyword arguments for customization
+"""
 function logoplot_with_highlight(
     pfm::AbstractMatrix,
     background::AbstractVector,
@@ -307,6 +351,11 @@ function logoplot_with_highlight(
     return p
 end
 
+"""
+    logoplot_with_highlight(pfm, highlighted_regions; kwargs...)
+
+Plot a sequence logo with highlighted regions using default background frequencies.
+"""
 function logoplot_with_highlight(
     pfm::AbstractMatrix,
     highlighted_regions::Vector{UnitRange{Int}};
@@ -322,38 +371,30 @@ function logoplot_with_highlight(
     )
 end
 
+# ===========================
+# Save Functions
+# ===========================
 
 """
-    save_logoplot(pfm, background, save_name; dpi=65)
+    save_logoplot(pfm, background, save_name; kwargs...)
+
+Save a sequence logo plot to a file.
 
 # Arguments
-- `pfm::Matrix{Real}`: Position frequency matrix
-- `background::Vector{Real}`: Background probabilities of A, C, G, T
-- `save_name::String`: Name of the path/file to save the plot
+- `pfm::Matrix{Real}`: Position frequency matrix (rows = characters, columns = positions)
+- `background::Vector{Real}`: Background probabilities for each character
+- `save_name::String`: File path to save the plot
 
-Note that
-- `pfm` must be a probability matrix
-    - sum of each column must be 1
-- `background` must be a vector of length 4
-    - must be a vector of probabilities
-    - sum of `background` must be 1
+# Requirements
+- `pfm` must be a probability matrix (each column sums to 1)
+- `background` must be a vector of probabilities that sum to 1
+- For nucleotides: `background` length = 4; for proteins: length = 20
 
 # Example
 ```julia
-
-pfm =  [0.02  1.0  0.98  0.0   0.0   0.0   0.98  0.0   0.18  1.0
-        0.98  0.0  0.02  0.19  0.0   0.96  0.01  0.89  0.03  0.0
-        0.0   0.0  0.0   0.77  0.01  0.0   0.0   0.0   0.56  0.0
-        0.0   0.0  0.0   0.04  0.99  0.04  0.01  0.11  0.23  0.0]
-
+pfm = [0.02 1.0 0.98 0.0; 0.98 0.0 0.02 0.19; ...]
 background = [0.25, 0.25, 0.25, 0.25]
-
-#= save the logo plot in the tmp folder as logo.png =#
-save_logoplot(pfm, background, "tmp/logo.png")
-
-#= save the logo plot in the current folder as logo.png with a dpi of 65 =#
 save_logoplot(pfm, background, "logo.png"; dpi=65)
-
 ```
 """
 function save_logoplot(
@@ -422,12 +463,12 @@ function save_logoplot(
 end
 
 """
-    save_logoplot(pfm, save_name; dpi=65)
+    save_logoplot(pfm, save_name; kwargs...)
 
-    This is the same as `save_logoplot(pfm, background, save_name; dpi=65)`
-    where `background` is set to `[0.25, 0.25, 0.25, 0.25]`
+Save a sequence logo plot using default background frequencies.
 
-    See `save_logoplot(pfm, background, save_name; dpi=65)` for more details.
+This is equivalent to `save_logoplot(pfm, background, save_name; kwargs...)`
+where `background` is set to uniform frequencies for the sequence type.
 """
 function save_logoplot(
     pfm,
