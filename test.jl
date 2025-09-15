@@ -55,7 +55,7 @@ ending_indices = starting_indices .+ size.(pfms, 2) .- 1
 @assert all(starting_indices .== sort(starting_indices)) "Starting indices must be sorted."
 
 offsets_from_start, total_len_adjusted =
-    get_offset_from_start(starting_indices, pfms, total_len)
+    EntroPlots.get_offset_from_start(starting_indices, pfms, total_len)
 
 
 
