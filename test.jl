@@ -35,11 +35,60 @@ total_len = 290
 # offsets_from_start, total_len_adjusted = 
 #     EntroPlots.get_offset_from_start(starting_indices, pfms, total_len)
 
-logoplot_with_rect_gaps(
+EntroPlots.logoplot_with_rect_gaps(
     pfms, starting_indices, total_len; 
     )
 
 # p = logoplot_with_arrow_gaps(pfms, ds_mat, weights; given_num_cols=12, )
+
+
+
+pfms = [
+    [0.1;
+     0.3;
+     0.3;
+     0.3],
+    [0.5; 
+     0.1; 
+     0.3; 
+     0.1],
+    [0.1;
+     0.2;
+     0.4;
+     0.3],
+    [0.4;
+     0.2;
+     0.2;
+     0.2],
+]
+
+
+
+
+reduce_entropy!(pfms)
+
+# ds_mat = [2 4 4;]
+
+# # weights = [1]
+# weights = [0.05]
+starting_indices = [28, 66, 190, 250]
+total_len = 290
+
+# offsets_from_start, total_len_adjusted = 
+#     EntroPlots.get_offset_from_start(starting_indices, pfms, total_len)
+
+EntroPlots.logoplot_with_rect_gaps(
+    pfms, starting_indices, total_len; 
+    )
+
+
+
+
+
+
+
+
+
 
 
 
