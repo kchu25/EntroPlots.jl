@@ -2,18 +2,23 @@ module EntroPlots
 
 using Plots
 
-include("const.jl")
-include("const_glyphs.jl")
-include("helpers.jl")
 
+include("constants/letters.jl")
+include("constants/rectangles.jl")
+include("constants/glyphs.jl")
+include("constants/palettes.jl")
+include("constants/plot_params.jl")
+
+
+include("helpers.jl")
 include("plot_nothing.jl")
 include("plot_logo.jl")
-include("helpers_shape.jl")
-include("helpers_spacers.jl")
+# include("helpers_shape.jl")
+# include("helpers_spacers.jl")
 # include("plot_logo_w_crosslinks.jl")
 # 
-include("logo_rect_helpers.jl")
-include("plot_logo_w_arr_gaps.jl")
+# include("logo_rect_helpers.jl")
+# include("plot_logo_w_arr_gaps.jl")
 
 
 export logoplot,
