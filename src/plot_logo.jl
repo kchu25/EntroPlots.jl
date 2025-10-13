@@ -21,7 +21,14 @@ end
 Calculate vertical offset for stacking by summing all heights smaller than current character height.
 """
 function compute_vertical_offset(adjusted_heights, aa_idx)
-    return sum(adjusted_heights[adjusted_heights .< adjusted_heights[aa_idx]])
+    h = adjusted_heights[aa_idx]
+    s = 0.0
+    @inbounds for i in eachindex(adjusted_heights)
+        if adjusted_heights[i] < h
+            s += adjusted_heights[i]
+        end
+    end
+    return s
 end
 
 """
