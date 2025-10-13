@@ -143,6 +143,7 @@ function logoplot_with_rect_gaps(
             setup_off = true,
             logo_x_offset = logo_x_offset,
             uniform_color = uniform_color,
+            scale_by_frequency = true,
         )
     end
     for (_, col) in enumerate(eachcol(coords_mat))

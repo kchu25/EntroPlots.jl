@@ -47,7 +47,7 @@ end
 # ===========================
 
 """
-    freq2xy_general(pfm, chars; background, beta, logo_x_offset, logo_y_offset, alphabet_coords, very_small_perturb)
+    freq2xy_general(pfm, chars; background, beta, logo_x_offset, logo_y_offset, alphabet_coords, very_small_perturb, scale_by_frequency)
 
 Convert position frequency matrix (PFM) to x/y coordinates for plotting sequence logos.
 
@@ -59,6 +59,7 @@ Convert position frequency matrix (PFM) to x/y coordinates for plotting sequence
 - `logo_x_offset`, `logo_y_offset`: Offset coordinates for positioning
 - `alphabet_coords`: Dictionary mapping characters to glyph coordinates
 - `very_small_perturb`: Small random perturbation to avoid identical heights
+- `scale_by_frequency`: If true, scale letters by frequency only (stack to full height). If false (default), scale by information content.
 
 # Returns
 Vector of tuples containing character name and (xs, ys) coordinates.
@@ -72,6 +73,7 @@ function freq2xy_general(
     logo_y_offset = 0.0,
     alphabet_coords = ALPHABET_GLYPHS,
     very_small_perturb = nothing,
+    scale_by_frequency = false,
 )
     n_chars = length(chars)
     background === nothing && (background = fill(1 / n_chars, n_chars))
@@ -85,8 +87,16 @@ function freq2xy_general(
 
         for (pos_idx, col) in enumerate(eachcol(pfm))
             col_view = @view col[1:n_chars]
-            ic_height = ic_height_here(col_view; background = background)
-            adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+            
+            if scale_by_frequency
+                # Scale by frequency only - stack to full height
+                adjusted_heights = (col_view .+ very_small_perturb) .* 2
+            else
+                # Scale by information content (original behavior)
+                ic_height = ic_height_here(col_view; background = background)
+                adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+            end
+            
             y_offset = compute_vertical_offset(adjusted_heights, idx)
 
             push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
@@ -142,6 +152,7 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
 - `beta::Real=1.0`: Glyph width scaling factor
 - `uniform_color::Bool=false`: Use uniform coloring scheme
 - `tight::Bool=false`: Use tight plot limits
+- `scale_by_frequency::Bool=false`: If true, scale letters by frequency only (stack to full height). If false, scale by information content.
 - Additional styling parameters available
 """
 @userplot LogoPlot
@@ -163,7 +174,8 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     pos = false,
     color_positive = "#FFA500",
     color_negative = "#0047AB",
-    xticks_nothing = true
+    xticks_nothing = true,
+    scale_by_frequency = false
 )
     # Extract and validate input data
     pfm = data.args[1]
@@ -214,6 +226,7 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
         beta = beta,
         logo_x_offset = logo_x_offset,
         logo_y_offset = logo_y_offset,
+        scale_by_frequency = scale_by_frequency,
     )
     
     # Get appropriate color palette
@@ -296,6 +309,7 @@ Plot a sequence logo with specific regions highlighted.
 - `pfm`: Position frequency matrix
 - `background`: Background frequencies
 - `highlighted_regions`: Vector of UnitRange{Int} specifying positions to highlight
+- `scale_by_frequency::Bool=false`: If true, scale letters by frequency only (stack to full height)
 - Additional keyword arguments for customization
 """
 function logoplot_with_highlight(
@@ -308,6 +322,7 @@ function logoplot_with_highlight(
     alpha = _alpha_,
     uniform_color = false,
     pos = false,
+    scale_by_frequency = false,
 )
 
     check_highlighted_regions(highlighted_regions)
@@ -330,6 +345,7 @@ function logoplot_with_highlight(
             logo_x_offset = logo_x_offset,
             uniform_color = uniform_color,
             pos = pos,
+            scale_by_frequency = scale_by_frequency,
         )
     end
     for r in highlighted_regions
@@ -345,6 +361,7 @@ function logoplot_with_highlight(
             logo_x_offset = logo_x_offset,
             uniform_color = uniform_color,
             pos = pos,
+            scale_by_frequency = scale_by_frequency,
         )
 
     end
@@ -361,6 +378,7 @@ function logoplot_with_highlight(
     highlighted_regions::Vector{UnitRange{Int}};
     protein = false,
     rna = false,
+    scale_by_frequency = false,
 )
     return logoplot_with_highlight(
         pfm,
@@ -368,6 +386,7 @@ function logoplot_with_highlight(
         highlighted_regions;
         rna = rna,
         protein = protein,
+        scale_by_frequency = scale_by_frequency,
     )
 end
 
@@ -384,6 +403,7 @@ Save a sequence logo plot to a file.
 - `pfm::Matrix{Real}`: Position frequency matrix (rows = characters, columns = positions)
 - `background::Vector{Real}`: Background probabilities for each character
 - `save_name::String`: File path to save the plot
+- `scale_by_frequency::Bool=false`: If true, scale letters by frequency only (stack to full height)
 
 # Requirements
 - `pfm` must be a probability matrix (each column sums to 1)
@@ -412,6 +432,7 @@ function save_logoplot(
     pos = false,
     _margin_ = margin,
     tight = false,
+    scale_by_frequency = false,
 )
     @assert all(sum(pfm, dims = 1) .≈ 1) "pfm must be a probability matrix"
     @assert length(background) == 4 || length(background) == 20 "background must be a vector of length 4"
@@ -439,6 +460,7 @@ function save_logoplot(
             tight = tight,
             uniform_color = uniform_color,
             pos = pos,
+            scale_by_frequency = scale_by_frequency,
         )
         plot!(p, xaxis = false, yaxis = true, 
             ytickfontsize = (protein ? ytickfontsize_protein : 295))
@@ -454,6 +476,7 @@ function save_logoplot(
             protein=protein, 
             uniform_color = uniform_color,
             pos = pos,
+            scale_by_frequency = scale_by_frequency,
         )
         plot!(p, xaxis = false, yaxis = true, ytickfontsize = 555)
         hline!(p, [0], linewidth = 55, color = :black)  # Add a thick horizontal line (x-axis)
@@ -484,6 +507,7 @@ function save_logoplot(
     yaxis = true,
     _margin_ = margin,
     tight = false,
+    scale_by_frequency = false,
 )
     if protein
         bg = default_protein_background
@@ -505,5 +529,6 @@ function save_logoplot(
         tight = tight,
         uniform_color = uniform_color,
         pos = pos,
+        scale_by_frequency = scale_by_frequency,
     )
 end
