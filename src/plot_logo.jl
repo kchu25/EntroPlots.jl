@@ -179,6 +179,7 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     yaxis = false,
     logo_x_offset = 0.0,
     logo_y_offset = 0.0,
+    xrotation = 0,
     setup_off = false,
     alpha = 1.0,
     beta = 1.0,
@@ -216,6 +217,8 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
         yminorticks --> yminorticks
         ytickfont --> font(logo_font_size, logo_font)
         xtickfontcolor --> :black
+        # rotate the xticks?
+        xrotation --> xrotation
         ytickfontsize --> (protein ? ytickfontsize_protein : ytickfontsize)
         xtickfontsize --> (protein ? xtickfontsize_protein : xtickfontsize)
         legend --> false

@@ -105,6 +105,7 @@ function logoplot_with_rect_gaps(
     rna= false,
     uniform_color = true,
     basic_fcn = get_rectangle_basic, 
+    xrotation = 0,
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
     # xtickfontsize = xtickfontsize_protein_rect,
     # ytickfontsize = ytickfontsize_protein_rect,
@@ -146,6 +147,7 @@ function logoplot_with_rect_gaps(
             rna = rna,
             setup_off = true,
             logo_x_offset = logo_x_offset,
+            xrotation = xrotation,
             uniform_color = uniform_color,
             scale_by_frequency = true,
             reference_pfm = !isnothing(reference_pfms) ? reference_pfms[ind] : nothing
