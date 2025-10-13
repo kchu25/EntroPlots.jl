@@ -37,7 +37,9 @@ end
 Compute x-coordinates for a glyph based on position and scaling factors.
 """
 function compute_glyph_x_coords(glyph_x, beta, pos_idx, logo_x_offset)
-    return (beta * 1.2) .* glyph_x .+ (1 / (beta * 0.9)) * 0.35 .+ pos_idx .+ (logo_x_offset - 1)
+    scale = beta * 1.2
+    shift = (1 / (beta * 0.9)) * 0.35 + pos_idx + (logo_x_offset - 1)
+    return @. scale * glyph_x + shift
 end
 
 """
@@ -81,6 +83,7 @@ function freq2xy_general(
     alphabet_coords = ALPHABET_GLYPHS,
     very_small_perturb = nothing,
     scale_by_frequency = false,
+    reference_pfm::Union{BitMatrix, Nothing} = nothing # a columnwise one hot matrix to show the reference sequence
 )
     n_chars = length(chars)
     background === nothing && (background = fill(1 / n_chars, n_chars))
@@ -91,10 +94,15 @@ function freq2xy_general(
     for (idx, c) in enumerate(chars)
         xs, ys = Float64[], Float64[]
         glyph = get(alphabet_coords, c, BASIC_RECT)
+        non_ref_letter = false # flag letters that's not in the reference matrix
 
         for (pos_idx, col) in enumerate(eachcol(pfm))
             col_view = @view col[1:n_chars]
             
+            if !isnothing(reference_pfm)
+                non_ref_letter = reference_pfm[idx, pos_idx] == 0
+            end
+
             if scale_by_frequency
                 # Scale by frequency only - stack to full height
                 adjusted_heights = (col_view .+ very_small_perturb) .* 2
@@ -112,7 +120,7 @@ function freq2xy_general(
             push!(ys, NaN)
         end
 
-        push!(all_coords, (c, (; xs, ys)))
+        push!(all_coords, (c, (; xs, ys), non_ref_letter))
     end
 
     return all_coords
@@ -182,7 +190,8 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     color_positive = "#FFA500",
     color_negative = "#0047AB",
     xticks_nothing = true,
-    scale_by_frequency = false
+    scale_by_frequency = false,
+    reference_pfm::Union{BitMatrix, Nothing} = nothing, # a columnwise one hot matrix to show the reference sequence
 )
     # Extract and validate input data
     pfm = data.args[1]
@@ -234,14 +243,18 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
         logo_x_offset = logo_x_offset,
         logo_y_offset = logo_y_offset,
         scale_by_frequency = scale_by_frequency,
+        reference_pfm = reference_pfm
     )
     
     # Get appropriate color palette
     palette = get_color_palette(uniform_color, pos)
     
     # Create series for each character
-    for (char, coord_data) in coords
-        color_here = uniform_color ? get(palette, char, :grey) : get(palette, char, :grey)
+    for (char, coord_data, non_ref_letter) in coords
+        color_here = get(palette, char, :grey)
+        if !isnothing(reference_pfm) && non_ref_letter
+            color_here = :lightgrey
+        end
         @series begin
             fill := 0
             lw --> 0

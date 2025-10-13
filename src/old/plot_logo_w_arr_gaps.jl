@@ -104,10 +104,14 @@ function logoplot_with_rect_gaps(
     dpi = 65,
     rna= false,
     uniform_color = true,
-    basic_fcn = get_rectangle_basic,
+    basic_fcn = get_rectangle_basic, 
+    reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
     # xtickfontsize = xtickfontsize_protein_rect,
     # ytickfontsize = ytickfontsize_protein_rect,
     )
+    if !isnothing(reference_pfms)
+        @assert length(reference_pfms) == length(pfms) "The number of reference pfms should match the number of pfms"
+    end
 
     offsets_from_start, total_len_adjusted = 
         EntroPlots.get_offset_from_start(starting_indices, pfms, total_length)
@@ -144,6 +148,7 @@ function logoplot_with_rect_gaps(
             logo_x_offset = logo_x_offset,
             uniform_color = uniform_color,
             scale_by_frequency = true,
+            reference_pfm = !isnothing(reference_pfms) ? reference_pfms[ind] : nothing
         )
     end
     for (_, col) in enumerate(eachcol(coords_mat))
