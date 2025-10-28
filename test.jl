@@ -1,4 +1,3 @@
-
 using Revise 
 
 using Plots
@@ -188,3 +187,59 @@ background = [0.25, 0.25, 0.25, 0.25]
 
 highlighted_regions1=[4:8]
 logoplot_with_highlight(pfm, background, highlighted_regions1)
+
+
+
+
+
+# Answer: To provide a reference and plot with 2 colors for deviating letters:
+#
+# 1. Create reference matrices as BitMatrix (one-hot encoded) for each PFM:
+#    reference_pfms = [BitMatrix for each position in your PFMs]
+#    Each reference_pfm[i,j] = 1 if position j should have letter i, 0 otherwise
+#
+# 2. Pass reference_pfms to logoplot_with_rect_gaps:
+#    logoplot_with_rect_gaps(pfms, starting_indices, total_len; reference_pfms=reference_pfms)
+#
+# Example:
+# For a 4x6 PFM (4 letters, 6 positions), if reference sequence is "ACGTAG":
+ref_pfm1 = BitMatrix(zeros(4, 6))
+ref_pfm1[1,1] = 1  # A at position 1
+ref_pfm1[2,2] = 1  # C at position 2  
+ref_pfm1[3,3] = 1  # G at position 3
+ref_pfm1[4,4] = 1  # T at position 4
+ref_pfm1[1,5] = 1  # A at position 5
+ref_pfm1[3,6] = 1  # G at position 6
+
+# Define ref_pfm2 for the second PFM (same dimensions as pfms[2])
+ref_pfm2 = BitMatrix(zeros(4, 6))
+ref_pfm2[2,1] = 1  # C at position 1
+ref_pfm2[3,2] = 1  # G at position 2
+ref_pfm2[4,3] = 1  # T at position 3
+ref_pfm2[1,4] = 1  # A at position 4
+ref_pfm2[2,5] = 1  # C at position 5
+ref_pfm2[3,6] = 1  # G at position 6
+
+# Define ref_pfm3 for the third PFM (same dimensions as pfms[3])
+ref_pfm3 = BitMatrix(zeros(4, 6))
+ref_pfm3[1,1] = 1  # A at position 1
+ref_pfm3[4,2] = 1  # T at position 2
+ref_pfm3[2,3] = 1  # C at position 3
+ref_pfm3[3,4] = 1  # G at position 4
+ref_pfm3[3,5] = 1  # G at position 5
+ref_pfm3[3,6] = 1  # G at position 6
+
+# Define ref_pfm4 for the fourth PFM (same dimensions as pfms[4])
+ref_pfm4 = BitMatrix(zeros(4, 6))
+ref_pfm4[1,1] = 1  # A at position 1
+ref_pfm4[2,2] = 1  # C at position 2
+ref_pfm4[3,3] = 1  # G at position 3
+ref_pfm4[3,4] = 1  # G at position 4
+ref_pfm4[3,5] = 1  # G at position 5
+ref_pfm4[3,6] = 1  # G at position 6
+
+# Create similar reference matrices for all your PFMs
+reference_pfms = [ref_pfm1, ref_pfm2, ref_pfm3, ref_pfm4]  # one for each PFM
+
+# Letters matching reference will be colored normally, deviating letters will be lightgrey
+logoplot_with_rect_gaps(pfms, starting_indices, total_len; reference_pfms=reference_pfms)
