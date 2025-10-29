@@ -177,4 +177,45 @@ function save_logo_w_arrows(
     savefig(p, save_name)
 end
 
+function save_logo_with_rect_gaps(
+    pfms,
+    starting_indices,
+    total_length,
+    save_name::String;
+    arrow_shape_scale_ratio::Real = 1.0,
+    height_top::Real = 2.0,
+    dpi = 65,
+    rna = false,
+    uniform_color = true,
+    basic_fcn = get_rectangle_basic,
+    xrotation = 0,
+    reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
+)
+    # Validate inputs
+    for pfm in pfms
+        @assert all(sum(pfm, dims = 1) .≈ 1) "pfm must be a probability matrix"
+    end
+    
+    if !isnothing(reference_pfms)
+        @assert length(reference_pfms) == length(pfms) "The number of reference pfms should match the number of pfms"
+    end
+    
+    # Generate the plot
+    p = logoplot_with_rect_gaps(
+        pfms, starting_indices, total_length;
+        arrow_shape_scale_ratio = arrow_shape_scale_ratio,
+        height_top = height_top,
+        dpi = dpi,
+        rna = rna,
+        uniform_color = uniform_color,
+        basic_fcn = basic_fcn,
+        xrotation = xrotation,
+        reference_pfms = reference_pfms
+    )
+    
+    # Save the plot
+    savefig(p, save_name)
+    return p
+end
+
 

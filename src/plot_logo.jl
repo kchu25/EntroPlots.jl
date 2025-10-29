@@ -256,7 +256,7 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     for (char, coord_data, non_ref_letter) in coords
         color_here = get(palette, char, :grey)
         if !isnothing(reference_pfm) && non_ref_letter
-            color_here = :lightgrey
+            color_here = :darkred
         end
         @series begin
             fill := 0

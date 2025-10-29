@@ -28,7 +28,8 @@ export logoplot,
     save_logoplot,
     reduce_entropy!,
     get_rectangle_basic,
-    logoplot_with_rect_gaps
+    logoplot_with_rect_gaps,
+    save_logo_with_rect_gaps
 
 # export LogoPlot,
 #     logoplotwithcrosslink,
