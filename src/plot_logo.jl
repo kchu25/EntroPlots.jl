@@ -192,7 +192,7 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     color_negative = "#0047AB",
     xticks_nothing = true,
     scale_by_frequency = false,
-    reference_pfm::Union{BitMatrix, Nothing} = nothing, # a columnwise one hot matrix to show the reference sequence
+    reference_pfm = nothing, # a columnwise one hot matrix to show the reference sequence
 )
     # Extract and validate input data
     pfm = data.args[1]
