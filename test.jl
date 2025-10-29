@@ -268,6 +268,6 @@ logoplot_with_rect_gaps(pfms, starting_indices, total_len;
 save_logo_with_rect_gaps(
     pfms, starting_indices, total_len, "logo_rotated_labels.png";
     reference_pfms = reference_pfms,
-    xrotation = 90,  # Rotate x-tick labels by 90 degrees (vertical)
+    xrotation = 25,  # Rotate x-tick labels by 90 degrees (vertical)
     dpi = 150
 )

@@ -132,6 +132,7 @@ function logoplot_with_rect_gaps(
 
     p = nothinglogo(total_len_adjusted; 
         xaxis_on = false, 
+        yaxis = false,  # Hide y-axis labels by default
         xtick_labels = xtick_labels, 
         xt = xtickfontsize_protein_rect,
         yt = ytickfontsize_protein_rect,)
@@ -146,6 +147,7 @@ function logoplot_with_rect_gaps(
             dpi = dpi,
             rna = rna,
             setup_off = true,
+            yaxis = false,  # Hide y-axis labels
             logo_x_offset = logo_x_offset,
             xrotation = xrotation,
             uniform_color = uniform_color,
@@ -157,6 +159,10 @@ function logoplot_with_rect_gaps(
         # @info "col: $(col)"
         arrowplot!(p, col; arrow_color_palette = arrow_color_palette)
     end
+    
+    # Force hide y-axis labels and ticks
+    plot!(p; yaxis = false, yticks = nothing)
+    
     return p
 end
 
