@@ -1,4 +1,3 @@
-
 #=
     Get the increments: 
         the spacing in between all the PFMs
@@ -109,6 +108,102 @@ function check_overlap(pfms, starting_indices)
         end
     end
     return true
+end
+
+#=
+Filter PFMs by removing columns that match the reference.
+Returns fragmented PFMs and their adjusted starting indices.
+
+Args:
+    pfms: Vector of PFMs
+    starting_indices: Starting position of each PFM
+    reference_pfms: Vector of reference PFMs (BitMatrix, one-hot encoded)
+    tolerance: Maximum allowed deviation from reference (default 0.05)
+
+Returns:
+    (filtered_pfms, filtered_indices, filtered_refs)
+=#
+function filter_pfms_by_reference(
+    pfms::Vector, 
+    starting_indices::Vector{Int},
+    reference_pfms::Vector{BitMatrix};
+    tolerance::Float64 = 0.05
+)
+    # Validate reference PFMs (each column must have exactly one entry = 1)
+    for (idx, ref) in enumerate(reference_pfms)
+        for col in eachcol(ref)
+            if sum(col) != 1
+                error("Reference PFM $idx has invalid column: each column must have exactly one entry = 1 (one-hot encoded)")
+            end
+        end
+    end
+    
+    filtered_pfms = Vector{Matrix{Float64}}()
+    filtered_indices = Vector{Int}()
+    filtered_refs = Vector{BitMatrix}()
+    
+    for (pfm_idx, (pfm, start_pos, ref)) in enumerate(zip(pfms, starting_indices, reference_pfms))
+        @assert size(pfm) == size(ref) "PFM and reference must have same dimensions"
+        
+        # Find columns that DON'T match reference
+        keep_cols = Bool[]
+        for col_idx in 1:size(pfm, 2)
+            pfm_col = pfm[:, col_idx]
+            ref_col = ref[:, col_idx]
+            
+            # Get the reference nucleotide/amino acid (the one with value 1)
+            ref_nt_idx = findfirst(ref_col)
+            
+            # Check if PFM column matches reference within tolerance
+            # Match means: the reference nucleotide has high frequency (> 1 - tolerance)
+            # and all others have low frequency (< tolerance)
+            matches = (pfm_col[ref_nt_idx] > (1.0 - tolerance)) &&
+                     all(pfm_col[i] < tolerance for i in 1:length(pfm_col) if i != ref_nt_idx)
+            
+            push!(keep_cols, !matches)  # Keep if it DOESN'T match
+        end
+        
+        # Fragment the PFM based on keep_cols
+        if !any(keep_cols)
+            # All columns match reference - skip this entire PFM
+            continue
+        end
+        
+        # Find contiguous regions of kept columns
+        regions = Vector{UnitRange{Int}}()
+        in_region = false
+        region_start = 0
+        
+        for i in 1:length(keep_cols)
+            if keep_cols[i] && !in_region
+                # Start new region
+                region_start = i
+                in_region = true
+            elseif !keep_cols[i] && in_region
+                # End region
+                push!(regions, region_start:(i-1))
+                in_region = false
+            end
+        end
+        
+        # Handle last region
+        if in_region
+            push!(regions, region_start:length(keep_cols))
+        end
+        
+        # Create fragments for each region
+        for region in regions
+            fragment_pfm = pfm[:, region]
+            fragment_ref = ref[:, region]
+            fragment_start = start_pos + first(region) - 1
+            
+            push!(filtered_pfms, fragment_pfm)
+            push!(filtered_indices, fragment_start)
+            push!(filtered_refs, fragment_ref)
+        end
+    end
+    
+    return filtered_pfms, filtered_indices, filtered_refs
 end
 
 

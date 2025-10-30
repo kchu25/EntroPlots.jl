@@ -1,4 +1,3 @@
-
 @userplot ArrowPlot
 @recipe function f(data::ArrowPlot; arrow_color_palette = nothing)
     coords = data.args[1]
@@ -15,6 +14,8 @@
         end
     end
 end
+
+
 
 """
 ds_mat: Matrix of distances between the pfms
@@ -108,9 +109,23 @@ function logoplot_with_rect_gaps(
     basic_fcn = get_rectangle_basic, 
     xrotation = 0,
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
+    reduction::Bool = false,
+    reduction_tolerance::Real = 1e-2,
     )
     if !isnothing(reference_pfms)
         @assert length(reference_pfms) == length(pfms) "The number of reference pfms should match the number of pfms"
+        
+        # Apply reduction if requested
+        if reduction
+            pfms, starting_indices, reference_pfms = EntroPlots.filter_pfms_by_reference(
+                pfms, starting_indices, reference_pfms; 
+                tolerance=reduction_tolerance
+            )
+            
+            if isempty(pfms)
+                error("All columns match reference - nothing to plot after reduction")
+            end
+        end
     end
 
     offsets_from_start, total_len_adjusted = 
@@ -198,6 +213,8 @@ function save_logo_with_rect_gaps(
     basic_fcn = get_rectangle_basic,
     xrotation = 0,
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
+    reduction::Bool = false,
+    reduction_tolerance::Real = 1e-2,
 )
     # Validate inputs
     for pfm in pfms
@@ -219,7 +236,9 @@ function save_logo_with_rect_gaps(
         uniform_color = uniform_color,
         basic_fcn = basic_fcn,
         xrotation = xrotation,
-        reference_pfms = reference_pfms
+        reference_pfms = reference_pfms,
+        reduction = reduction,
+        reduction_tolerance = reduction_tolerance
     )
     
     # Save the plot
