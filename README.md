@@ -106,6 +106,38 @@ save_logoplot(pfm_protein, "protein_highlight.png";
               protein=true, highlighted_regions=[2:5, 8:12])
 ```
 
+<!-- ### Gap Visualization 
+
+Visualize sequence motifs separated by gaps with strike-through rectangles:
+
+```julia
+# Two motifs with a gap
+pfm1 = rand(4, 9); pfm1 ./= sum(pfm1, dims=1)
+pfm2 = rand(4, 9); pfm2 ./= sum(pfm2, dims=1)
+
+# Plot with gap at positions 10-11
+logoplot_with_rect_gaps([pfm1, pfm2], [1, 12], 22)
+
+# Protein sequences with gaps
+pfm_p1 = rand(20, 10); pfm_p1 ./= sum(pfm_p1, dims=1)
+pfm_p2 = rand(20, 10); pfm_p2 ./= sum(pfm_p2, dims=1)
+logoplot_with_rect_gaps([pfm_p1, pfm_p2], [1, 13], 25; protein=true)
+
+# With reference-based coloring (blue=match, red=mismatch)
+ref = falses(4, 9)
+ref[1, 3] = true  # Mark A at position 3
+logoplot_with_rect_gaps([pfm1], [1], 9; reference_pfms=[ref])
+```
+
+**Features:**
+- Small gaps (1-3 positions) are clearly visible
+- Strike-through rectangles mark gap regions
+- Supports both nucleotide and protein sequences
+- Optional reference-based 2-color highlighting
+- Logarithmic compression for large spacing
+
+See `demo_simple.jl` and `demo_protein_gaps.jl` for examples. -->
+
 ## API Reference
 
 The package provides a simple interface centered around these main functions:

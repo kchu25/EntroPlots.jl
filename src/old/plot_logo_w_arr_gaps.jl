@@ -103,12 +103,11 @@ function logoplot_with_rect_gaps(
     height_top::Real = 2.0,
     dpi = 65,
     rna= false,
+    protein = false,
     uniform_color = true,
     basic_fcn = get_rectangle_basic, 
     xrotation = 0,
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
-    # xtickfontsize = xtickfontsize_protein_rect,
-    # ytickfontsize = ytickfontsize_protein_rect,
     )
     if !isnothing(reference_pfms)
         @assert length(reference_pfms) == length(pfms) "The number of reference pfms should match the number of pfms"
@@ -133,6 +132,7 @@ function logoplot_with_rect_gaps(
     p = nothinglogo(total_len_adjusted; 
         xaxis_on = false, 
         yaxis = false,  # Hide y-axis labels by default
+        protein = protein,
         xtick_labels = xtick_labels, 
         xt = xtickfontsize_protein_rect,
         yt = ytickfontsize_protein_rect,)
@@ -146,6 +146,7 @@ function logoplot_with_rect_gaps(
             EntroPlots.bg;
             dpi = dpi,
             rna = rna,
+            protein = protein,
             setup_off = true,
             yaxis = false,  # Hide y-axis labels
             logo_x_offset = logo_x_offset,
@@ -192,6 +193,7 @@ function save_logo_with_rect_gaps(
     height_top::Real = 2.0,
     dpi = 65,
     rna = false,
+    protein = false,
     uniform_color = true,
     basic_fcn = get_rectangle_basic,
     xrotation = 0,
@@ -213,6 +215,7 @@ function save_logo_with_rect_gaps(
         height_top = height_top,
         dpi = dpi,
         rna = rna,
+        protein = protein,
         uniform_color = uniform_color,
         basic_fcn = basic_fcn,
         xrotation = xrotation,

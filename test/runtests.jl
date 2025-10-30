@@ -303,4 +303,7 @@ using Plots
             @test isempty(empty_complement)
         end
     end
+    
+    # Include gap tests
+    include("test_gaps.jl")
 end
