@@ -59,13 +59,13 @@ function logoplot_with_arrow_gaps(
         height_top = height_top,
         basic_fcn = basic_fcn
     )
-    @info "pfm_starts $(pfm_starts)"
+    # @info "pfm_starts $(pfm_starts)"
     # plot the logo with arrow shapes
     p = nothinglogo(total_pfm_cols + total_d_cols; xaxis_on = false)
 
     for (ind, pfm) in enumerate(pfms)
         logo_x_offset = pfm_starts[ind]
-        @info "Plotting logo for PFM $(ind) with offset $(logo_x_offset)"
+        # @info "Plotting logo for PFM $(ind) with offset $(logo_x_offset)"
         logoplot!(
             p,
             pfm,
@@ -123,7 +123,7 @@ function logoplot_with_rect_gaps(
         height_top = height_top,
         basic_fcn = basic_fcn)
 
-    @info "total PFM columns: $(total_pfm_cols), total D columns: $(total_d_cols)"
+    # @info "total PFM columns: $(total_pfm_cols), total D columns: $(total_d_cols)"
 
     @assert (total_pfm_cols + total_d_cols) == total_len_adjusted "The total length of the logo should match the sum of PFM and D columns."
 

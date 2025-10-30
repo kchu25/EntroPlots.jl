@@ -297,7 +297,7 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     for (char, coord_data, non_ref_letter) in coords
         # When reference_pfm is provided, use blue/darkred coloring scheme
         if !isnothing(reference_pfm)
-            color_here = non_ref_letter ? :darkred : :blue
+            color_here = non_ref_letter ? :darkred : "#1434A4"
         else
             color_here = get(palette, char, :grey)
         end
