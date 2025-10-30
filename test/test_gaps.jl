@@ -146,7 +146,7 @@ end
         
         # Test valid reference works
         filtered = EntroPlots.filter_pfms_by_reference(
-            [pfm1], [1], [ref_valid]; tolerance=0.05
+            [pfm1], [1], [ref_valid]; tolerance=0.01
         )
         @test filtered !== nothing
         
@@ -157,7 +157,7 @@ end
         ref_invalid1[3, 2] = true
         
         @test_throws ErrorException EntroPlots.filter_pfms_by_reference(
-            [pfm1], [1], [ref_invalid1]; tolerance=0.05
+            [pfm1], [1], [ref_invalid1]; tolerance=0.01
         )
         
         # Invalid reference - no ones in a column
@@ -167,25 +167,67 @@ end
         # Column 1 has no ones
         
         @test_throws ErrorException EntroPlots.filter_pfms_by_reference(
-            [pfm1], [1], [ref_invalid2]; tolerance=0.05
+            [pfm1], [1], [ref_invalid2]; tolerance=0.01
         )
+    end
+    
+    @testset "Tolerance sensitivity - capture ≥1% variation" begin
+        # Test that tolerance=0.01 correctly distinguishes matching vs non-matching columns
+        
+        # Column that MATCHES reference (A=0.995, others <0.01)
+        col_match = [0.995, 0.003, 0.001, 0.001]
+        
+        # Column with 1% variation - should NOT match (captures this variation)
+        col_1pct_var = [0.99, 0.01, 0.0, 0.0]  # 1% at position 2
+        
+        # Column with 2% variation - should NOT match
+        col_2pct_var = [0.97, 0.02, 0.005, 0.005]  # 2% at position 2
+        
+        # Column with 5% variation - should NOT match
+        col_5pct_var = [0.92, 0.05, 0.02, 0.01]  # 5% at position 2
+        
+        # Create test PFM with these columns
+        pfm_test = hcat(col_match, col_1pct_var, col_2pct_var, col_5pct_var)
+        
+        ref_test = falses(4, 4)
+        ref_test[1, :] .= true  # All A reference
+        
+        # With tolerance=0.01
+        filtered_strict = EntroPlots.filter_pfms_by_reference(
+            [pfm_test], [1], [ref_test]; tolerance=0.01
+        )
+        
+        # Should filter out column 1 (matches), keep columns 2-4 (have ≥1% variation)
+        @test length(filtered_strict[1]) == 1  # One fragment
+        @test size(filtered_strict[1][1], 2) == 3  # Columns 2-4
+        @test filtered_strict[2][1] == 2  # Starting at position 2 (1 + 2 - 1)
+        
+        # Test with looser tolerance=0.02
+        filtered_loose = EntroPlots.filter_pfms_by_reference(
+            [pfm_test], [1], [ref_test]; tolerance=0.02
+        )
+        
+        # Should filter out columns 1-2 (both match within 2% tolerance), keep columns 3-4
+        @test length(filtered_loose[1]) == 1  # One fragment
+        @test size(filtered_loose[1][1], 2) == 2  # Columns 3-4
+        @test filtered_loose[2][1] == 3  # Starting at position 3
     end
     
     @testset "Fragmentation and start position updates" begin
         # Create PFM with known structure
         pfm1 = zeros(4, 10)
         
-        # Columns 1-2: match reference (A with prob ~1.0)
-        pfm1[:, 1] = [0.98, 0.01, 0.005, 0.005]
-        pfm1[:, 2] = [0.99, 0.005, 0.0025, 0.0025]
+        # Columns 1-2: match reference (A with prob > 0.99, all others < 0.01)
+        pfm1[:, 1] = [0.994, 0.002, 0.002, 0.002]
+        pfm1[:, 2] = [0.997, 0.001, 0.001, 0.001]
         
         # Columns 3-5: DON'T match reference (varied)
         pfm1[:, 3] = [0.25, 0.25, 0.25, 0.25]
         pfm1[:, 4] = [0.1, 0.7, 0.1, 0.1]
         pfm1[:, 5] = [0.3, 0.3, 0.2, 0.2]
         
-        # Column 6: matches reference (C with prob ~1.0)
-        pfm1[:, 6] = [0.005, 0.98, 0.0075, 0.0075]
+        # Column 6: matches reference (C with prob > 0.99, all others < 0.01)
+        pfm1[:, 6] = [0.002, 0.994, 0.002, 0.002]
         
         # Columns 7-10: DON'T match reference
         pfm1[:, 7] = [0.4, 0.3, 0.2, 0.1]
@@ -199,9 +241,9 @@ end
         ref1[1, 6] = false
         ref1[2, 6] = true   # Column 6 is C
         
-        # Filter with tolerance 0.05
+        # Filter with tolerance 0.01
         filtered_pfms, filtered_indices, filtered_refs = EntroPlots.filter_pfms_by_reference(
-            [pfm1], [100], [ref1]; tolerance=0.05
+            [pfm1], [100], [ref1]; tolerance=0.01
         )
         
         # Should have 2 fragments:
@@ -226,14 +268,14 @@ end
         # Edge case 1: All columns match reference - should return empty
         pfm_all_match = zeros(4, 5)
         for i in 1:5
-            pfm_all_match[:, i] = [0.98, 0.01, 0.005, 0.005]
+            pfm_all_match[:, i] = [0.994, 0.002, 0.002, 0.002]  # All < 0.01 except reference
         end
         
         ref_all = falses(4, 5)
         ref_all[1, :] .= true  # All A
         
         filtered = EntroPlots.filter_pfms_by_reference(
-            [pfm_all_match], [1], [ref_all]; tolerance=0.05
+            [pfm_all_match], [1], [ref_all]; tolerance=0.01
         )
         
         @test length(filtered[1]) == 0  # No fragments
@@ -250,7 +292,7 @@ end
         ref_no_match[1, :] .= true  # All A (but PFM has uniform distribution)
         
         filtered2 = EntroPlots.filter_pfms_by_reference(
-            [pfm_no_match], [10], [ref_no_match]; tolerance=0.05
+            [pfm_no_match], [10], [ref_no_match]; tolerance=0.01
         )
         
         @test length(filtered2[1]) == 1  # One fragment (entire PFM)
@@ -259,7 +301,7 @@ end
         
         # Edge case 3: Multiple PFMs with different fragmentation patterns
         pfm_a = zeros(4, 4)
-        pfm_a[:, 1:2] = [0.98 0.98; 0.01 0.01; 0.005 0.005; 0.005 0.005]  # Match
+        pfm_a[:, 1:2] = [0.994 0.994; 0.002 0.002; 0.002 0.002; 0.002 0.002]  # Match
         pfm_a[:, 3:4] = [0.25 0.25; 0.25 0.25; 0.25 0.25; 0.25 0.25]      # Don't match
         
         pfm_b = zeros(4, 4)
@@ -272,7 +314,7 @@ end
         ref_b[2, :] .= true
         
         filtered3 = EntroPlots.filter_pfms_by_reference(
-            [pfm_a, pfm_b], [1, 20], [ref_a, ref_b]; tolerance=0.05
+            [pfm_a, pfm_b], [1, 20], [ref_a, ref_b]; tolerance=0.01
         )
         
         # Should have 2 fragments total: 1 from pfm_a (cols 3-4) and 1 from pfm_b (all cols)
@@ -284,9 +326,9 @@ end
     @testset "Integration: reduction option in logoplot_with_rect_gaps" begin
         # Create PFMs with known matching/non-matching columns
         pfm1 = zeros(4, 8)
-        pfm1[:, 1:2] = [0.98 0.98; 0.01 0.01; 0.005 0.005; 0.005 0.005]  # Match
+        pfm1[:, 1:2] = [0.994 0.994; 0.002 0.002; 0.002 0.002; 0.002 0.002]  # Match
         pfm1[:, 3:5] = [0.25 0.25 0.25; 0.25 0.25 0.25; 0.25 0.25 0.25; 0.25 0.25 0.25]  # Don't match
-        pfm1[:, 6:8] = [0.98 0.98 0.98; 0.01 0.01 0.01; 0.005 0.005 0.005; 0.005 0.005 0.005]  # Match
+        pfm1[:, 6:8] = [0.994 0.994 0.994; 0.002 0.002 0.002; 0.002 0.002 0.002; 0.002 0.002 0.002]  # Match
         
         ref1 = falses(4, 8)
         ref1[1, :] .= true  # All A
@@ -315,17 +357,17 @@ end
         # Create protein PFM (20 amino acids)
         pfm_protein = zeros(20, 6)
         
-        # Columns 1-2: match reference (first amino acid)
-        pfm_protein[:, 1] = vcat([0.98], fill(0.001, 19))
-        pfm_protein[:, 2] = vcat([0.97], fill(0.0015, 19))
+        # Columns 1-2: match reference (first amino acid with >99%, others <1%)
+        pfm_protein[:, 1] = vcat([0.992], fill(0.0004, 19))  # 19*0.0004 + 0.992 ≈ 1.0
+        pfm_protein[:, 2] = vcat([0.992], fill(0.0004, 19))
         
         # Columns 3-4: don't match
         pfm_protein[:, 3] = fill(0.05, 20)
         pfm_protein[:, 4] = fill(0.05, 20)
         
         # Columns 5-6: match reference
-        pfm_protein[:, 5] = vcat([0.99], fill(0.0005, 19))
-        pfm_protein[:, 6] = vcat([0.98], fill(0.001, 19))
+        pfm_protein[:, 5] = vcat([0.992], fill(0.0004, 19))
+        pfm_protein[:, 6] = vcat([0.992], fill(0.0004, 19))
         
         # Normalize
         pfm_protein ./= sum(pfm_protein, dims=1)

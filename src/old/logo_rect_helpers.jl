@@ -118,7 +118,10 @@ Args:
     pfms: Vector of PFMs
     starting_indices: Starting position of each PFM
     reference_pfms: Vector of reference PFMs (BitMatrix, one-hot encoded)
-    tolerance: Maximum allowed deviation from reference (default 0.05)
+    tolerance: Maximum allowed deviation from reference (default 0.01)
+              - Reference position must have frequency ≥ (1.0 - tolerance)
+              - All other positions must have frequency < tolerance
+              - Default 0.01 means: captures columns with ≥1% variation from reference
 
 Returns:
     (filtered_pfms, filtered_indices, filtered_refs)
@@ -127,7 +130,7 @@ function filter_pfms_by_reference(
     pfms::Vector, 
     starting_indices::Vector{Int},
     reference_pfms::Vector{BitMatrix};
-    tolerance::Float64 = 0.05
+    tolerance::Float64 = 0.01
 )
     # Validate reference PFMs (each column must have exactly one entry = 1)
     for (idx, ref) in enumerate(reference_pfms)
