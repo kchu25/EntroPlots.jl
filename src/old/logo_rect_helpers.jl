@@ -30,7 +30,17 @@ function log2_or_0(x::Integer)
     return x == 0 ? 0 : log2(x)
 end
 
-inc_round_up(x) = Int(ceil(log2_or_0(x)))
+# Round up log2, but ensure minimum of 1 for any gap > 0
+# This ensures small gaps (1-3 positions) are still visible
+function inc_round_up(x)
+    if x == 0
+        return 0
+    else
+        result = max(1, Int(ceil(log2_or_0(x))))
+        @info "inc_round_up($x) = $result (log2=$( log2_or_0(x)))"
+        return result
+    end
+end
 
 #=
     starting_indices: starting indices of each PFM in the motif
@@ -40,8 +50,16 @@ inc_round_up(x) = Int(ceil(log2_or_0(x)))
     Get the offsets from the start of the logo for each PFM
         1. compute the increments in between the PFMs
         2. log transform each increment and round up each of them
+           - IMPORTANT: Ensure minimum of 1 for any gap > 0 so small gaps remain visible
+           - Without this, gaps of 1-3 positions would be compressed to 0 or become invisible
         3. compute the offsets from the start of the logo
         4. return the offsets as a vector
+        
+    Example:
+        - Gap of 1 position: log2(1) = 0 → max(1, ceil(0)) = 1 (visible)
+        - Gap of 2 positions: log2(2) = 1 → max(1, ceil(1)) = 1 (visible)
+        - Gap of 3 positions: log2(3) = 1.58 → max(1, ceil(1.58)) = 2 (visible)
+        - Gap of 0 positions: returns 0 (no gap, consecutive PFMs)
 =#
 function get_offset_from_start(starting_indices, pfms, total_len)
 

@@ -1,6 +1,15 @@
+# Activate the local package environment
+using Pkg
+Pkg.activate(".")
+Pkg.instantiate()
+
 using Revise 
 using Plots
 using EntroPlots
+
+println("Testing LOCAL version of EntroPlots")
+println("Package location: ", pathof(EntroPlots))
+println()
 
 # Create simple PFMs for testing
 pfms = [

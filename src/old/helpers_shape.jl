@@ -375,16 +375,16 @@ function make_arrow_shapes(
 )
     coords_mat = init_coords_mats(ds_mats; basic_fcn = basic_fcn)
 
-    @info "$coords_mat"
+    # @info "$coords_mat"
     # scale the width of each arrow-shapes and 
     # get the number of columns for each "column"
     num_cols_each_d = num_col_each_col!(coords_mat, dist_cols)
 
     pfm_starts, d_starts = obtain_pfm_regions_and_dstarts(pfms, num_cols_each_d)
-    @info "pfm_starts: $pfm_starts d_starts: $d_starts"
-    @info "num_cols_each_d: $num_cols_each_d"
+    # @info "pfm_starts: $pfm_starts d_starts: $d_starts"
+    # @info "num_cols_each_d: $num_cols_each_d"
 
-    @info "d_starts: $d_starts"
+    # @info "d_starts: $d_starts"
 
     # coords_mat = process_coords_mat(coords_mat, weights, d_starts; 
     #     arrow_shape_scale_ratio = arrow_shape_scale_ratio,
@@ -409,15 +409,15 @@ function make_rect_shape(pfms, pfm_starts, total_len;
     @info "d_starts: $d_starts d_cols: $d_cols"
     coords_mat = init_coords_mats(d_cols; basic_fcn = basic_fcn)
 
-    @info "coords_mat-1: $(coords_mat[1])"
+    # @info "coords_mat-1: $(coords_mat[1])"
 
     coords_mat = process_coords_mat_rect(coords_mat, d_starts; 
         arrow_shape_scale_ratio = arrow_shape_scale_ratio,
         height_top = height_top,
         basic_fcn = basic_fcn)
         
-    @info "coords_mat-1: $(coords_mat[1])"
-    @info "coords_mat-2: $(coords_mat[2])"
+    # @info "coords_mat-1: $(coords_mat[1])"
+    # @info "coords_mat-2: $(coords_mat[2])"
 
     total_pfm_cols = size.(pfms, 2) |> sum
     total_d_cols = d_cols |> sum
