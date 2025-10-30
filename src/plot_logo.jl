@@ -92,35 +92,76 @@ function freq2xy_general(
     all_coords = []
 
     for (idx, c) in enumerate(chars)
-        xs, ys = Float64[], Float64[]
         glyph = get(alphabet_coords, c, BASIC_RECT)
-        non_ref_letter = false # flag letters that's not in the reference matrix
-
-        for (pos_idx, col) in enumerate(eachcol(pfm))
-            col_view = @view col[1:n_chars]
+        
+        # When reference is provided, we need to track positions separately
+        # to color matching vs non-matching positions differently
+        if !isnothing(reference_pfm)
+            xs_ref, ys_ref = Float64[], Float64[]      # positions matching reference
+            xs_nonref, ys_nonref = Float64[], Float64[] # positions NOT matching reference
             
-            if !isnothing(reference_pfm)
-                non_ref_letter = reference_pfm[idx, pos_idx] == 0
+            for (pos_idx, col) in enumerate(eachcol(pfm))
+                col_view = @view col[1:n_chars]
+                
+                if scale_by_frequency
+                    adjusted_heights = (col_view .+ very_small_perturb) .* 2
+                else
+                    ic_height = ic_height_here(col_view; background = background)
+                    adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+                end
+                
+                y_offset = compute_vertical_offset(adjusted_heights, idx)
+                
+                xs_coord = compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)
+                ys_coord = compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)
+                
+                # Check if this character at this position matches the reference
+                if reference_pfm[idx, pos_idx] == 1
+                    # This is the reference letter at this position
+                    push!(xs_ref, xs_coord...)
+                    push!(xs_ref, NaN)
+                    push!(ys_ref, ys_coord...)
+                    push!(ys_ref, NaN)
+                else
+                    # This is NOT the reference letter at this position
+                    push!(xs_nonref, xs_coord...)
+                    push!(xs_nonref, NaN)
+                    push!(ys_nonref, ys_coord...)
+                    push!(ys_nonref, NaN)
+                end
+            end
+            
+            # Add both reference and non-reference coordinates
+            if !isempty(xs_ref)
+                push!(all_coords, (c, (; xs=xs_ref, ys=ys_ref), false)) # matches reference
+            end
+            if !isempty(xs_nonref)
+                push!(all_coords, (c, (; xs=xs_nonref, ys=ys_nonref), true)) # doesn't match reference
+            end
+        else
+            # No reference - original behavior
+            xs, ys = Float64[], Float64[]
+            
+            for (pos_idx, col) in enumerate(eachcol(pfm))
+                col_view = @view col[1:n_chars]
+
+                if scale_by_frequency
+                    adjusted_heights = (col_view .+ very_small_perturb) .* 2
+                else
+                    ic_height = ic_height_here(col_view; background = background)
+                    adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
+                end
+                
+                y_offset = compute_vertical_offset(adjusted_heights, idx)
+
+                push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
+                push!(xs, NaN)
+                push!(ys, compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)...)
+                push!(ys, NaN)
             end
 
-            if scale_by_frequency
-                # Scale by frequency only - stack to full height
-                adjusted_heights = (col_view .+ very_small_perturb) .* 2
-            else
-                # Scale by information content (original behavior)
-                ic_height = ic_height_here(col_view; background = background)
-                adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
-            end
-            
-            y_offset = compute_vertical_offset(adjusted_heights, idx)
-
-            push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
-            push!(xs, NaN)
-            push!(ys, compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)...)
-            push!(ys, NaN)
+            push!(all_coords, (c, (; xs, ys), false))
         end
-
-        push!(all_coords, (c, (; xs, ys), non_ref_letter))
     end
 
     return all_coords
@@ -254,9 +295,11 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     
     # Create series for each character
     for (char, coord_data, non_ref_letter) in coords
-        color_here = get(palette, char, :grey)
-        if !isnothing(reference_pfm) && non_ref_letter
-            color_here = :darkred
+        # When reference_pfm is provided, use blue/darkred coloring scheme
+        if !isnothing(reference_pfm)
+            color_here = non_ref_letter ? :darkred : :blue
+        else
+            color_here = get(palette, char, :grey)
         end
         @series begin
             fill := 0

@@ -261,7 +261,8 @@ save_logo_with_rect_gaps(
 # Example with rotated x-axis labels (45 degrees)
 logoplot_with_rect_gaps(pfms, starting_indices, total_len; 
     reference_pfms = reference_pfms,
-    xrotation = 25  # Rotate x-tick labels by 45 degrees
+    xrotation = 25,  # Rotate x-tick labels by 45 degrees
+    uniform_color = false
 )
 
 # Save with rotated labels
@@ -270,4 +271,27 @@ save_logo_with_rect_gaps(
     reference_pfms = reference_pfms,
     xrotation = 25,  # Rotate x-tick labels by 90 degrees (vertical)
     dpi = 150
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Letters matching reference will be colored normally, deviating letters will be lightgrey
+logoplot_with_rect_gaps(pfms, starting_indices, total_len; reference_pfms=reference_pfms)
+
+
+# Example with rotated x-axis labels (45 degrees)
+logoplot_with_rect_gaps(pfms, starting_indices, total_len; 
+    reference_pfms = reference_pfms,
+    xrotation = 25,  # Rotate x-tick labels by 45 degrees
+    uniform_color = true
 )
