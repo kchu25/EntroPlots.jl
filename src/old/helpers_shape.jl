@@ -14,18 +14,27 @@ function get_rectangle_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
             positive: shift to the right
             negative: shift to the left
     =#
-    # arrow_line_width = line_scale * 4.0
+    # Trim the rectangle on the right to avoid overlap with next logo
+    # More aggressive trimming for small gaps to prevent touching
+    if line_scale <= 2
+        right_trim = 0.6  # Very aggressive for 1-2 nucleotide gaps (leaves 40% gap)
+    elseif line_scale < 4
+        right_trim = 0.75  # Aggressive for small gaps (leaves 25% gap)
+    elseif line_scale < 6
+        right_trim = 0.85  # Moderate for medium gaps (leaves 15% gap)
+    else
+        right_trim = 0.9  # Minimal for large gaps (leaves 10% gap)
+    end
+    
     x =
         [
             0.0,
-            1.0 * line_scale,
-            1.0 * line_scale,
+            right_trim * line_scale,
+            right_trim * line_scale,
             0.0
         ] .+ x_offset
-    # y = [1.005, 1.005, 0.995, 0.995]
     y = [1.015, 1.015, 0.985, 0.985]
-        return shape(x, y)
-        return shape(-x, y)
+    return shape(x, y)
 end
 
 function get_arrow_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
@@ -227,7 +236,9 @@ function make_in_between_basic(
             ),
         )
     else
-        push!(coords,  basic_fcn(; line_scale = num_bt-1))
+        # For rectangles, use the full width (num_bt) instead of (num_bt-1)
+        # This ensures small gaps remain visible
+        push!(coords,  basic_fcn(; line_scale = num_bt))
     end
 
     # return coords
@@ -404,26 +415,18 @@ function make_rect_shape(pfms, pfm_starts, total_len;
 
     d_starts, d_cols = get_spacers(pfms, pfm_starts, total_len)
 
-    # num_cols_each_d = num_col_each_col!(coords_mat, sum(d_cols))
-
-    @info "d_starts: $d_starts d_cols: $d_cols"
     coords_mat = init_coords_mats(d_cols; basic_fcn = basic_fcn)
-
-    # @info "coords_mat-1: $(coords_mat[1])"
 
     coords_mat = process_coords_mat_rect(coords_mat, d_starts; 
         arrow_shape_scale_ratio = arrow_shape_scale_ratio,
         height_top = height_top,
         basic_fcn = basic_fcn)
-        
-    # @info "coords_mat-1: $(coords_mat[1])"
-    # @info "coords_mat-2: $(coords_mat[2])"
 
     total_pfm_cols = size.(pfms, 2) |> sum
     total_d_cols = d_cols |> sum
 
-
     return coords_mat, total_pfm_cols, total_d_cols
 end
+
 
 

@@ -30,15 +30,14 @@ function log2_or_0(x::Integer)
     return x == 0 ? 0 : log2(x)
 end
 
-# Round up log2, but ensure minimum of 1 for any gap > 0
-# This ensures small gaps (1-3 positions) are still visible
+# Round up log2, but ensure minimum of 2 for any gap > 0
+# This ensures small gaps (1-3 positions) are clearly visible
+# A gap of 1 display position is often too thin to see, so we use minimum of 2
 function inc_round_up(x)
     if x == 0
         return 0
     else
-        result = max(1, Int(ceil(log2_or_0(x))))
-        @info "inc_round_up($x) = $result (log2=$( log2_or_0(x)))"
-        return result
+        return max(2, Int(ceil(log2_or_0(x))))
     end
 end
 

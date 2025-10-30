@@ -44,20 +44,15 @@ function get_complement(pfms, pfms_offsets, total_len)
     start_inds =  pushfirst!([i[2]+1 for i in start_and_ends], 1)
     end_inds = push!([i[1]-1 for i in start_and_ends], total_len)
 
-    @info "Start indices: $(start_inds), End indices: $(end_inds)"
     for (s, e) in zip(start_inds, end_inds)
         gap_size = e - s + 1
         push!(num_cols_each_d, gap_size)
         push!(d_start, s)
-        @info "  Gap from $s to $e: size = $gap_size"
     end
     # obtain the mask for the spacers
-    @info "num_cols_each_d before filter: $num_cols_each_d"
     mask = map(x->x>0, num_cols_each_d)
-    @info "Mask (keeping gaps > 0): $mask"
     d_cols = num_cols_each_d[mask]
     d_starts = d_start[mask]
-    @info "Filtered d_cols: $d_cols, d_starts: $d_starts"
     return d_cols, d_starts
 end
 

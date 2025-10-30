@@ -17,8 +17,8 @@ println()
     
     @testset "inc_round_up function" begin
         @test inc_round_up(0) == 0  # No gap
-        @test inc_round_up(1) == 1  # 1 position gap - should be visible
-        @test inc_round_up(2) == 1  # 2 position gap - should be visible
+        @test inc_round_up(1) == 2  # 1 position gap - minimum 2 for visibility
+        @test inc_round_up(2) == 2  # 2 position gap - minimum 2 for visibility
         @test inc_round_up(3) == 2  # 3 position gap
         @test inc_round_up(4) == 2  # 4 position gap
         @test inc_round_up(7) == 3  # 7 position gap
