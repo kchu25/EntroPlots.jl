@@ -88,15 +88,57 @@ end
 
 Returns number of contiguous fragments after filtering count matrices by reference.
 """
-function count_fragments(count_matrices::Vector, reference_pfms::Vector{BitMatrix}; tol=1e-9)
+function count_fragments(count_matrices::Vector, reference_pfms::Vector{BitMatrix}, starting_indices::Vector{Int}; tol=1e-9)
+    """
+    count_fragments(count_matrices, reference_pfms, starting_indices; tol=1e-9)
+
+    Returns a tuple (total_fragments::Int, span::String). The span is a human-readable string
+    describing all fragment spans across all matrices in global coordinates (using the provided
+    `starting_indices`). Examples:
+      - single column at 45 -> "45"
+      - columns 45-48 -> "45-48"
+      - two fragments at 45 and 51-55 -> "(45, 51-55)"
+    """
+
     total = 0
-    for (c, r) in zip(count_matrices, reference_pfms)
+    all_spans = String[]
+
+    for (c, r, start) in zip(count_matrices, reference_pfms, starting_indices)
         keep = filter_counts_by_reference(c, r; tol=tol)
-        if !isempty(keep)
-            total += length(group_to_ranges(keep))
+        isempty(keep) && continue
+
+        ranges = group_to_ranges(keep)
+        total += length(ranges)
+
+        # Convert each local range to a global span string using `start`
+        for rg in ranges
+            global_start = start + first(rg) - 1
+            global_stop = start + last(rg) - 1
+            if global_start == global_stop
+                push!(all_spans, string(global_start))
+            else
+                push!(all_spans, string(global_start, "-", global_stop))
+            end
         end
     end
-    return total
+
+    # Create a single combined span string
+    if isempty(all_spans)
+        span = ""
+    elseif length(all_spans) == 1
+        span = all_spans[1]
+    else
+        span = "(" * join(all_spans, ", ") * ")"
+    end
+
+    return total, span
+end
+
+# Backwards-compatible wrapper: if starting indices are not provided, assume each
+# matrix starts at position 1.
+function count_fragments(count_matrices::Vector, reference_pfms::Vector{BitMatrix}; tol=1e-9)
+    starting_indices = fill(1, length(count_matrices))
+    return count_fragments(count_matrices, reference_pfms, starting_indices; tol=tol)
 end
 
 """

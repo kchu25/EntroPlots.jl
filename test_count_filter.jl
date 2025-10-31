@@ -38,10 +38,13 @@ using EntroPlots
         println("Kept columns in matrix 2: ", keep2)
         
         # Count fragments
-        n_fragments = EntroPlots.count_fragments(count_matrices, reference_pfms)
+        starting_indices = [1, 10]
+        n_fragments, span = EntroPlots.count_fragments(count_matrices, reference_pfms, starting_indices)
         println("Number of fragments: ", n_fragments)
+        println("Span: ", span)
         
         @test n_fragments > 0
+        @test !isempty(span)  # Single combined span string
     end
     
     @testset "Apply filter with starting indices" begin
@@ -72,8 +75,9 @@ using EntroPlots
         keep = EntroPlots.filter_counts_by_reference(counts, ref)
         @test isempty(keep)
         
-        n_fragments = EntroPlots.count_fragments([counts], [ref])
+        n_fragments, span = EntroPlots.count_fragments([counts], [ref], [1])
         @test n_fragments == 0
+        @test span == ""  # Empty string for no fragments
     end
     
     @testset "No match - all kept" begin
@@ -84,8 +88,9 @@ using EntroPlots
         keep = EntroPlots.filter_counts_by_reference(counts, ref)
         @test keep == [1, 2, 3]
         
-        n_fragments = EntroPlots.count_fragments([counts], [ref])
+        n_fragments, span = EntroPlots.count_fragments([counts], [ref], [1])
         @test n_fragments == 1  # One contiguous fragment
+        @test span == "1-3"  # Columns 1-3
     end
     
     @testset "Discontinuous fragments" begin
@@ -103,8 +108,9 @@ using EntroPlots
         @test keep == [1, 4, 5, 7]  # Columns with mismatches
         
         # Should create 3 fragments: [1], [4,5], [7]
-        n_fragments = EntroPlots.count_fragments([counts], [ref])
+        n_fragments, span = EntroPlots.count_fragments([counts], [ref], [10])
         @test n_fragments == 3
+        @test span == "(10, 13-14, 16)"  # Global positions: 10, 13-14, 16
     end
 end
 

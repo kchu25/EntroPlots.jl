@@ -304,6 +304,74 @@ using Plots
         end
     end
     
+    @testset "Count Matrix Filtering & Fragments" begin
+        @testset "Span String Formatting" begin
+            # Test single fragment (columns match reference so they're removed, non-matching kept)
+            counts1 = [5 5 5; 5 5 5; 0 0 0; 0 0 0]
+            ref1 = BitMatrix([0 0 0; 0 0 0; 1 1 1; 0 0 0])
+            n1, span1 = EntroPlots.count_fragments([counts1], [ref1], [5])
+            @test n1 == 1
+            @test span1 == "5-7"  # Single contiguous fragment
+            
+            # Test multiple fragments in one matrix
+            counts2 = [10 5 5 10 5; 0 5 5 0 5; 0 0 0 0 0; 0 0 0 0 0]
+            ref2 = BitMatrix([1 0 0 1 0; 0 0 0 0 0; 0 1 1 0 1; 0 0 0 0 0])
+            n2, span2 = EntroPlots.count_fragments([counts2], [ref2], [10])
+            @test n2 == 2
+            @test span2 == "(11-12, 14)"  # Multiple fragments with parentheses
+            
+            # Test single position
+            counts3 = [5 10; 5 0; 0 0; 0 0]
+            ref3 = BitMatrix([0 1; 0 0; 1 0; 0 0])
+            n3, span3 = EntroPlots.count_fragments([counts3], [ref3], [100])
+            @test n3 == 1
+            @test span3 == "100"  # Single position
+        end
+        
+        @testset "Combined Spans Across Matrices" begin
+            # Two matrices with different starting positions
+            counts_a = [10 5 5; 0 5 5; 0 0 0; 0 0 0]
+            counts_b = [5 10 5; 5 0 5; 0 0 0; 0 0 0]
+            ref_a = BitMatrix([1 0 0; 0 0 0; 0 1 1; 0 0 0])
+            ref_b = BitMatrix([0 1 0; 0 0 0; 1 0 1; 0 0 0])
+            
+            n, span = EntroPlots.count_fragments([counts_a, counts_b], [ref_a, ref_b], [1, 20])
+            @test n == 3  # 1 fragment from first + 2 from second
+            @test span == "(2-3, 20, 22)"  # All fragments in single parentheses
+        end
+        
+        @testset "Edge Cases for Spans" begin
+            # Empty result
+            counts_empty = [10 0; 0 10; 0 0; 0 0]
+            ref_empty = BitMatrix([1 0; 0 1; 0 0; 0 0])
+            n_empty, span_empty = EntroPlots.count_fragments([counts_empty], [ref_empty], [1])
+            @test n_empty == 0
+            @test span_empty == ""
+            
+            # Three matrices with various patterns
+            c1 = [5 5; 5 5; 0 0; 0 0]
+            c2 = [5; 5; 0; 0;;]  # Single column matrix
+            c3 = [5 5 10; 5 5 0; 0 0 0; 0 0 0]
+            r1 = BitMatrix([0 0; 0 0; 1 1; 0 0])
+            r2 = BitMatrix([0; 0; 1; 0;;])  # Single column BitMatrix
+            r3 = BitMatrix([0 0 1; 0 0 0; 1 1 0; 0 0 0])
+            
+            n_multi, span_multi = EntroPlots.count_fragments([c1, c2, c3], [r1, r2, r3], [1, 50, 100])
+            @test n_multi == 3  # 1 + 1 + 1
+            @test span_multi == "(1-2, 50, 100-101)"  # col 3 of c3 matches reference (single value at row 1)
+        end
+        
+        @testset "Backward Compatibility" begin
+            # Test wrapper that assumes start index 1
+            counts = [10 5 5; 0 5 5; 0 0 0; 0 0 0]
+            ref = BitMatrix([1 0 0; 0 0 0; 0 1 1; 0 0 0])
+            
+            n, span = EntroPlots.count_fragments([counts], [ref])  # No starting_indices
+            @test n == 1
+            @test span == "2-3"  # Should start from position 1
+        end
+    end
+    
     # Include gap tests
     include("test_gaps.jl")
 end

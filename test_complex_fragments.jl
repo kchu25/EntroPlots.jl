@@ -3,11 +3,11 @@ using EntroPlots
 println("=== Complex Fragment Counting Examples ===\n")
 
 # Helper function to visualize filtering
-function show_filtering(name, counts, ref, expected_fragments)
+function show_filtering(name, counts, ref, expected_fragments, start_idx=1)
     println("$name")
     println("="^60)
     
-    keep = filter_counts_by_reference(counts, ref)
+    keep = EntroPlots.filter_counts_by_reference(counts, ref)
     fragments = isempty(keep) ? [] : EntroPlots.group_to_ranges(keep)
     n_fragments = length(fragments)
     
@@ -27,7 +27,11 @@ function show_filtering(name, counts, ref, expected_fragments)
     println("Fragments: $fragments")
     println("Fragment count: $n_fragments (expected: $expected_fragments)")
     
-    if n_fragments == expected_fragments
+    # Test with count_fragments function to get span
+    n_frags_test, span = EntroPlots.count_fragments([counts], [ref], [start_idx])
+    println("Span: $span")
+    
+    if n_fragments == expected_fragments && n_frags_test == expected_fragments
         println("✓ PASS\n")
     else
         println("✗ FAIL - Expected $expected_fragments but got $n_fragments\n")
@@ -112,8 +116,9 @@ all_passed &= show_filtering("Matrix 3b (Second of two matrices)",
                              counts3b, ref3b, 2)
 
 println("\n### Combined Test for Example 3 ###")
-total_frags_3 = count_fragments([counts3a, counts3b], [ref3a, ref3b])
+total_frags_3, span_3 = EntroPlots.count_fragments([counts3a, counts3b], [ref3a, ref3b], [1, 10])
 println("Total fragments from both matrices: $total_frags_3 (expected: 4)")
+println("Span: $span_3")
 if total_frags_3 == 4
     println("✓ PASS\n")
     all_passed &= true
@@ -175,9 +180,10 @@ all_passed &= show_filtering("Matrix 4c (2 fragments)",
                              counts4c, ref4c, 2)
 
 println("\n### Combined Test for Example 4 ###")
-total_frags_4 = count_fragments([counts4a, counts4b, counts4c], 
-                                [ref4a, ref4b, ref4c])
+total_frags_4, span_4 = EntroPlots.count_fragments([counts4a, counts4b, counts4c], 
+                                [ref4a, ref4b, ref4c], [1, 20, 50])
 println("Total fragments from three matrices: $total_frags_4 (expected: 5)")
+println("Span: $span_4")
 if total_frags_4 == 5
     println("✓ PASS\n")
     all_passed &= true
