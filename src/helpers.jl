@@ -72,7 +72,15 @@ When equal, the column has single nonzero entry matching reference → remove it
 Returns indices of columns to keep.
 """
 function filter_counts_by_reference(counts::AbstractMatrix, ref::BitMatrix; tol=1e-9)
-    [i for i in 1:size(counts, 2) if abs(dot_product(counts[:, i], ref[:, i]) - sum(counts[:, i])) > tol]
+    keep = Int[]
+    for i in 1:size(counts, 2)
+        col = view(counts, :, i)
+        ref_col = view(ref, :, i)
+        if abs(dot_product(col, ref_col) - sum(col)) > tol
+            push!(keep, i)
+        end
+    end
+    return keep
 end
 
 """
@@ -107,9 +115,9 @@ function apply_count_filter(count_matrices::Vector, starting_indices::Vector{Int
         
         # Split into fragments
         for range in group_to_ranges(keep)
-            push!(new_counts, counts[:, range])
+            push!(new_counts, view(counts, :, range))
             push!(new_starts, start + first(range) - 1)
-            push!(new_refs, ref[:, range])
+            push!(new_refs, view(ref, :, range))
         end
     end
     
