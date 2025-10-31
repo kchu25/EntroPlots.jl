@@ -56,3 +56,62 @@ function reduce_entropy!(pfm_protein; factor = 10)
         pfm_protein[:, j] ./= sum(pfm_protein[:, j])  # Normalize the column
     end
 end
+
+"""
+    dot_product(a, b)
+
+Compute dot product of two vectors without LinearAlgebra dependency.
+"""
+dot_product(a, b) = sum(a .* b)
+
+"""
+    filter_counts_by_reference(counts, ref; tol=1e-9)
+
+Keep only columns where dot(col, ref_col) ≠ sum(col).
+When equal, the column has single nonzero entry matching reference → remove it.
+Returns indices of columns to keep.
+"""
+function filter_counts_by_reference(counts::AbstractMatrix, ref::BitMatrix; tol=1e-9)
+    [i for i in 1:size(counts, 2) if abs(dot_product(counts[:, i], ref[:, i]) - sum(counts[:, i])) > tol]
+end
+
+"""
+    count_fragments(count_matrices, reference_pfms; tol=1e-9)
+
+Returns number of contiguous fragments after filtering count matrices by reference.
+"""
+function count_fragments(count_matrices::Vector, reference_pfms::Vector{BitMatrix}; tol=1e-9)
+    total = 0
+    for (c, r) in zip(count_matrices, reference_pfms)
+        keep = filter_counts_by_reference(c, r; tol=tol)
+        if !isempty(keep)
+            total += length(group_to_ranges(keep))
+        end
+    end
+    return total
+end
+
+"""
+    apply_count_filter(count_matrices, starting_indices, reference_pfms; tol=1e-9)
+
+Filter count matrices by reference, returning new matrices with only non-matching columns.
+Updates starting indices to reflect new fragment positions.
+"""
+function apply_count_filter(count_matrices::Vector, starting_indices::Vector{Int}, 
+                           reference_pfms::Vector{BitMatrix}; tol=1e-9)
+    new_counts, new_starts, new_refs = [], Int[], BitMatrix[]
+    
+    for (counts, start, ref) in zip(count_matrices, starting_indices, reference_pfms)
+        keep = filter_counts_by_reference(counts, ref; tol=tol)
+        isempty(keep) && continue
+        
+        # Split into fragments
+        for range in group_to_ranges(keep)
+            push!(new_counts, counts[:, range])
+            push!(new_starts, start + first(range) - 1)
+            push!(new_refs, ref[:, range])
+        end
+    end
+    
+    new_counts, new_starts, new_refs
+end

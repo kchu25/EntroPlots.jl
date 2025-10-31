@@ -29,7 +29,10 @@ export logoplot,
     reduce_entropy!,
     get_rectangle_basic,
     logoplot_with_rect_gaps,
-    save_logo_with_rect_gaps
+    save_logo_with_rect_gaps,
+    filter_counts_by_reference,
+    count_fragments,
+    apply_count_filter
 
 # export LogoPlot,
 #     logoplotwithcrosslink,

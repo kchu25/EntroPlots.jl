@@ -99,7 +99,7 @@ end
 
 
 function logoplot_with_rect_gaps(
-    pfms, starting_indices, total_length;
+    count_matrices, starting_indices, total_length;
     arrow_shape_scale_ratio::Real = 1.0,
     height_top::Real = 2.0,
     dpi = 65,
@@ -109,23 +109,31 @@ function logoplot_with_rect_gaps(
     basic_fcn = get_rectangle_basic, 
     xrotation = 0,
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
-    reduction::Bool = false,
-    reduction_tolerance::Real = 1e-2,
+    filter_by_reference::Bool = true,
+    filter_tolerance::Real = 1e-9,
     )
-    if !isnothing(reference_pfms)
-        @assert length(reference_pfms) == length(pfms) "The number of reference pfms should match the number of pfms"
+    
+    # Apply filtering if reference is provided and filtering is enabled
+    if !isnothing(reference_pfms) && filter_by_reference
+        @assert length(reference_pfms) == length(count_matrices) "The number of reference pfms should match the number of count matrices"
         
-        # Apply reduction if requested
-        if reduction
-            pfms, starting_indices, reference_pfms = EntroPlots.filter_pfms_by_reference(
-                pfms, starting_indices, reference_pfms; 
-                tolerance=reduction_tolerance
-            )
-            
-            if isempty(pfms)
-                error("All columns match reference - nothing to plot after reduction")
-            end
+        # Filter count matrices by reference
+        count_matrices, starting_indices, reference_pfms = apply_count_filter(
+            count_matrices, starting_indices, reference_pfms; 
+            tol=filter_tolerance
+        )
+        
+        if isempty(count_matrices)
+            error("All columns match reference - nothing to plot after filtering")
         end
+    end
+    
+    # Normalize count matrices to PFMs
+    pfms = [counts ./ sum(counts, dims=1) for counts in count_matrices]
+    
+    # Verify normalization
+    for (i, pfm) in enumerate(pfms)
+        @assert all(sum(pfm, dims=1) .≈ 1.0) "PFM $i is not properly normalized after count matrix conversion"
     end
 
     offsets_from_start, total_len_adjusted = 
@@ -200,7 +208,7 @@ function save_logo_w_arrows(
 end
 
 function save_logo_with_rect_gaps(
-    pfms,
+    count_matrices,
     starting_indices,
     total_length,
     save_name::String;
@@ -213,21 +221,22 @@ function save_logo_with_rect_gaps(
     basic_fcn = get_rectangle_basic,
     xrotation = 0,
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
-    reduction::Bool = false,
-    reduction_tolerance::Real = 1e-2,
+    filter_by_reference::Bool = true,
+    filter_tolerance::Real = 1e-9,
 )
-    # Validate inputs
-    for pfm in pfms
-        @assert all(sum(pfm, dims = 1) .≈ 1) "pfm must be a probability matrix"
+    # Validate inputs - count matrices should have positive integer counts
+    for (i, counts) in enumerate(count_matrices)
+        @assert all(counts .>= 0) "Count matrix $i has negative values"
+        @assert all(sum(counts, dims=1) .> 0) "Count matrix $i has columns that sum to zero"
     end
     
     if !isnothing(reference_pfms)
-        @assert length(reference_pfms) == length(pfms) "The number of reference pfms should match the number of pfms"
+        @assert length(reference_pfms) == length(count_matrices) "The number of reference pfms should match the number of count matrices"
     end
     
     # Generate the plot
     p = logoplot_with_rect_gaps(
-        pfms, starting_indices, total_length;
+        count_matrices, starting_indices, total_length;
         arrow_shape_scale_ratio = arrow_shape_scale_ratio,
         height_top = height_top,
         dpi = dpi,
@@ -237,8 +246,8 @@ function save_logo_with_rect_gaps(
         basic_fcn = basic_fcn,
         xrotation = xrotation,
         reference_pfms = reference_pfms,
-        reduction = reduction,
-        reduction_tolerance = reduction_tolerance
+        filter_by_reference = filter_by_reference,
+        filter_tolerance = filter_tolerance
     )
     
     # Save the plot
