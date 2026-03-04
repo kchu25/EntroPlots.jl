@@ -528,7 +528,7 @@ function save_logoplot(
             pos = pos,
             scale_by_frequency = scale_by_frequency,
         )
-        plot!(p, xaxis = false, yaxis = true, 
+        plot!(p, xaxis = false, yaxis = yaxis, 
             ytickfontsize = (protein ? ytickfontsize_protein : 295))
         hline!([0], linewidth = 25, color = :black)  # Add a thick horizontal line (x-axis)
         vline!([0], linewidth = 25, color = :black)  # Add a thick vertical line (y-axis)
@@ -544,7 +544,7 @@ function save_logoplot(
             pos = pos,
             scale_by_frequency = scale_by_frequency,
         )
-        plot!(p, xaxis = false, yaxis = true, ytickfontsize = 555)
+        plot!(p, xaxis = false, yaxis = yaxis, ytickfontsize = 555)
         hline!(p, [0], linewidth = 55, color = :black)  # Add a thick horizontal line (x-axis)
         vline!(p, [0], linewidth = 55, color = :black)  # Add a thick vertical line (y-axis)
     end
