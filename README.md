@@ -69,6 +69,14 @@ logoplot_with_highlight(pfm, background, highlighted_regions)
 
 ![Highlighted Logo](demo/demo4.png)
 
+With minimal styling (no margins, tight layout):
+
+```julia
+logoplot_with_highlight(pfm, background, [4:8]; _margin_=0Plots.mm, tight=true)
+```
+
+![Tight Highlighted Logo](demo/demo4_tight.png)
+
 ### Protein Motifs
 
 For protein sequences (20 amino acids):

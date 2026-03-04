@@ -29,6 +29,7 @@ end
     crosslink = false,
     xaxis_on = true,
     tight = false,
+    _margin_ = nothing,
     xtick_labels = nothing,
 )
 
@@ -36,10 +37,8 @@ end
     xaxis = xaxis_on
     xaxis = crosslink ? false : true
     yaxis = crosslink ? false : true
-    # _margin_ = crosslink ? 25Plots.mm : margin;
-    # _margin_ = crosslink ? 525Plots.mm : margin;
     num_cols = data.args[1]
-    _margin_ = get_margin(num_cols)
+    _margin_ = isnothing(_margin_) ? get_margin(num_cols) : _margin_
     if !setup_off
         xaxis --> xaxis
         yaxis --> yaxis

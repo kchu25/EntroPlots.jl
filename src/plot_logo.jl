@@ -389,6 +389,8 @@ function logoplot_with_highlight(
     uniform_color = false,
     pos = false,
     scale_by_frequency = false,
+    _margin_ = nothing,
+    tight = false,
 )
 
     check_highlighted_regions(highlighted_regions)
@@ -396,7 +398,7 @@ function logoplot_with_highlight(
     num_columns, range_complement =
         get_numcols_and_range_complement(pfm, highlighted_regions)
 
-    p = nothinglogo(num_columns; protein=protein)
+    p = nothinglogo(num_columns; protein=protein, tight=tight, _margin_=_margin_)
     for r in range_complement
         logo_x_offset = r.start - 1
         logoplot!(
@@ -444,7 +446,10 @@ function logoplot_with_highlight(
     highlighted_regions::Vector{UnitRange{Int}};
     protein = false,
     rna = false,
+    dpi = 65,
     scale_by_frequency = false,
+    _margin_ = nothing,
+    tight = false,
 )
     return logoplot_with_highlight(
         pfm,
@@ -452,7 +457,10 @@ function logoplot_with_highlight(
         highlighted_regions;
         rna = rna,
         protein = protein,
+        dpi = dpi,
         scale_by_frequency = scale_by_frequency,
+        _margin_ = _margin_,
+        tight = tight,
     )
 end
 
@@ -538,11 +546,13 @@ function save_logoplot(
             background,
             highlighted_regions;
             dpi = dpi,
-            rna = rna,
+            rna = rna,            
             protein=protein, 
             uniform_color = uniform_color,
             pos = pos,
             scale_by_frequency = scale_by_frequency,
+            _margin_ = _margin_,
+            tight = tight,
         )
         plot!(p, xaxis = false, yaxis = yaxis, ytickfontsize = 555)
         hline!(p, [0], linewidth = 55, color = :black)  # Add a thick horizontal line (x-axis)

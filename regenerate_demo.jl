@@ -28,6 +28,11 @@ p = logoplot_with_highlight(pfm, background, highlighted_regions; dpi=26)
 savefig(p, "demo/demo4.png")
 println("✓ demo/demo4.png")
 
+# ===== demo4_tight.png: Highlighted regions with tight layout =====
+p = logoplot_with_highlight(pfm, background, [4:8]; _margin_=0Plots.mm, tight=true, dpi=26)
+savefig(p, "demo/demo4_tight.png")
+println("✓ demo/demo4_tight.png")
+
 # ===== logo_protein.png: Protein logo =====
 Random.seed!(42)
 matrix = rand(20, 25)
