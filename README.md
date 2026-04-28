@@ -5,162 +5,110 @@
 [![Build Status](https://github.com/kchu25/EntroPlots.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/kchu25/EntroPlots.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/kchu25/EntroPlots.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/kchu25/EntroPlots.jl)
 
-A Julia package for creating sequence logo plots from position frequency matrices (PFMs). EntroPlots.jl visualizes DNA, RNA, and protein motifs with information-theoretic scaling, custom backgrounds, and flexible highlighting options.
+Sequence logo plots from position frequency matrices (PFMs) — DNA, RNA, and protein.
 
-## Features
-
-- **DNA/RNA motifs**: Standard 4-letter nucleotide logos
-- **Protein motifs**: 20 amino acid sequence visualization  
-- **Custom backgrounds**: Non-uniform base/amino acid frequencies
-- **Region highlighting**: Emphasize important motif positions
-- **Publication ready**: Clean styling with PNG/SVG output
-- **Information content**: Proper bits scaling based on entropy reduction
-
-
-## Installation
-
-```julia
-using Pkg
-Pkg.add("EntroPlots")
-```
-
-## Quick Start
+![Basic Logo](demo/demo.png)
 
 ```julia
 using EntroPlots
 
-# Position frequency matrix (each column sums to 1)
 pfm = [0.02  1.0  0.98  0.0   0.0   0.0   0.98  0.0   0.18  1.0
        0.98  0.0  0.02  0.19  0.0   0.96  0.01  0.89  0.03  0.0
        0.0   0.0  0.0   0.77  0.01  0.0   0.0   0.0   0.56  0.0
        0.0   0.0  0.0   0.04  0.99  0.04  0.01  0.11  0.23  0.0]
 
-# Create logo plot
 logoplot(pfm)
 ```
 
-![Basic Logo](demo/demo.png)
-
-## Usage
-### Basic Plotting
+## Install
 
 ```julia
-# With custom background probabilities
-background = [0.25, 0.25, 0.25, 0.25]  # A, C, G, T
-logoplot(pfm, background)
+using Pkg; Pkg.add("EntroPlots")
+```
 
-# With uniform background (default)
-logoplot(pfm)
+## Reading a logo
 
-# Minimal styling
+- **x-axis**: position in the motif
+- **y-axis**: information content in bits (entropy reduction vs. background)
+- **letter height**: frequency × information content
+- **letter stacking**: most frequent on top
+
+## Cookbook
+
+The PFM `pfm` (4 × N for DNA/RNA, 20 × N for protein, columns sum to 1) is the only required input. Every example below assumes `using EntroPlots` and reuses the `pfm` from above.
+
+### Custom background frequencies
+
+```julia
+logoplot(pfm, [0.3, 0.2, 0.2, 0.3])  # A, C, G, T
+```
+
+### Minimal styling (no margins, no axes)
+
+```julia
+using Plots  # for `Plots.mm`
 logoplot(pfm; _margin_=0Plots.mm, tight=true, yaxis=false, xaxis=false)
 ```
 
 ![Minimal Logo](demo/no_margin.png)
 
-### Highlighting Regions
-
-Emphasize specific positions in your motif:
+### Highlight regions of interest
 
 ```julia
-highlighted_regions = [4:8]
-logoplot_with_highlight(pfm, background, highlighted_regions)
+logoplot_with_highlight(pfm, [4:8])
 ```
 
 ![Highlighted Logo](demo/demo4.png)
 
-With minimal styling (no margins, tight layout):
+Tight variant:
 
 ```julia
-logoplot_with_highlight(pfm, background, [4:8]; _margin_=0Plots.mm, tight=true)
+using Plots
+logoplot_with_highlight(pfm, [4:8]; _margin_=0Plots.mm, tight=true)
 ```
 
 ![Tight Highlighted Logo](demo/demo4_tight.png)
 
-### Protein Motifs
-
-For protein sequences (20 amino acids):
+### Protein motifs (20 amino acids)
 
 ```julia
-# Generate example protein data
 matrix = rand(20, 25)
 pfm_protein = matrix ./ sum(matrix, dims=1)
-reduce_entropy!(pfm_protein)
+reduce_entropy!(pfm_protein)  # sharpen toward dominant residue per column
 
-# Plot protein logo
 logoplot(pfm_protein; protein=true)
-```
-
-![Protein Logo](demo/logo_protein.png)
-
-With highlighting:
-
-```julia
 logoplot_with_highlight(pfm_protein, [2:5, 8:12, 21:25]; protein=true)
 ```
 
+![Protein Logo](demo/logo_protein.png)
 ![Highlighted Protein Logo](demo/logo_protein_highlight.png)
 
-### Saving Plots
+### RNA motifs
 
 ```julia
-# Save DNA/RNA logos
-save_logoplot(pfm, background, "logo.png")
-save_logoplot(pfm, "logo.png")  # uses default background
-
-# Save protein logos  
-save_logoplot(pfm_protein, "protein_logo.png"; protein=true)
-save_logoplot(pfm_protein, "protein_highlight.png"; 
-              protein=true, highlighted_regions=[2:5, 8:12])
+logoplot(pfm; rna=true)  # uses A, C, G, U
 ```
 
-<!-- ### Gap Visualization 
-
-Visualize sequence motifs separated by gaps with strike-through rectangles:
+### Saving to file
 
 ```julia
-# Two motifs with a gap
-pfm1 = rand(4, 9); pfm1 ./= sum(pfm1, dims=1)
-pfm2 = rand(4, 9); pfm2 ./= sum(pfm2, dims=1)
-
-# Plot with gap at positions 10-11
-logoplot_with_rect_gaps([pfm1, pfm2], [1, 12], 22)
-
-# Protein sequences with gaps
-pfm_p1 = rand(20, 10); pfm_p1 ./= sum(pfm_p1, dims=1)
-pfm_p2 = rand(20, 10); pfm_p2 ./= sum(pfm_p2, dims=1)
-logoplot_with_rect_gaps([pfm_p1, pfm_p2], [1, 13], 25; protein=true)
-
-# With reference-based coloring (blue=match, red=mismatch)
-ref = falses(4, 9)
-ref[1, 3] = true  # Mark A at position 3
-logoplot_with_rect_gaps([pfm1], [1], 9; reference_pfms=[ref])
+save_logoplot(pfm, "logo.png")                          # default uniform background
+save_logoplot(pfm, [0.3, 0.2, 0.2, 0.3], "logo.png")    # custom background
+save_logoplot(pfm_protein, "protein.png"; protein=true)
+save_logoplot(pfm, "highlighted.png"; highlighted_regions=[4:8])
 ```
 
-**Features:**
-- Small gaps (1-3 positions) are clearly visible
-- Strike-through rectangles mark gap regions
-- Supports both nucleotide and protein sequences
-- Optional reference-based 2-color highlighting
-- Logarithmic compression for large spacing
+## API
 
-See `demo_simple.jl` and `demo_protein_gaps.jl` for examples. -->
+| Function | Purpose |
+|---|---|
+| `logoplot(pfm[, background]; kwargs...)` | Render a logo plot. |
+| `logoplot_with_highlight(pfm[, background], regions; kwargs...)` | Render with selected positions highlighted. |
+| `save_logoplot(pfm[, background], path; kwargs...)` | Save to file (PNG / SVG / etc., inferred from extension). |
+| `reduce_entropy!(pfm; factor=10)` | Sharpen each column toward its dominant residue. Useful for noisy protein PFMs. |
 
-## API Reference
-
-The package provides a simple interface centered around these main functions:
-
-- `logoplot(pfm, background=nothing; kwargs...)` - Create a logo plot
-- `logoplot_with_highlight(pfm, regions; kwargs...)` - Plot with highlighted regions  
-- `save_logoplot(pfm, filename; kwargs...)` - Save plot to file
-- `reduce_entropy!(pfm)` - Apply entropy reduction (useful for protein data)
-
-**Plot interpretation:**
-- **X-axis**: Position in the sequence motif
-- **Y-axis**: Information content (bits) 
-- **Letter height**: Proportional to frequency × information content
-- **Letter stacking**: Most frequent nucleotides/amino acids on top
+Common keyword arguments: `protein`, `rna`, `tight`, `_margin_`, `xaxis`, `yaxis`, `dpi`, `alpha`, `beta`, `uniform_color`, `pos`, `xrotation`, `scale_by_frequency`.
 
 ## Acknowledgments
 
-This package builds upon and modifies code from [LogoPlots.jl](https://github.com/BenjaminDoran/LogoPlots.jl).
+Glyph data and base recipe pattern are adapted from [LogoPlots.jl](https://github.com/BenjaminDoran/LogoPlots.jl).

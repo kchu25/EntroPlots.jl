@@ -84,22 +84,21 @@ function filter_counts_by_reference(counts::AbstractMatrix, ref::BitMatrix; tol=
 end
 
 """
+    count_fragments(count_matrices, reference_pfms, starting_indices; tol=1e-9)
     count_fragments(count_matrices, reference_pfms; tol=1e-9)
 
-Returns number of contiguous fragments after filtering count matrices by reference.
+Filter count matrices by reference and report the resulting contiguous fragments.
+
+Returns `(total_fragments::Int, span::String)`, where `span` is a human-readable
+description of the fragments in global coordinates. Without `starting_indices`,
+each matrix is assumed to start at position 1.
+
+Span examples:
+  - single column at 45 -> "45"
+  - columns 45-48 -> "45-48"
+  - two fragments at 45 and 51-55 -> "(45, 51-55)"
 """
 function count_fragments(count_matrices::Vector, reference_pfms::Vector{BitMatrix}, starting_indices::Vector{Int}; tol=1e-9)
-    """
-    count_fragments(count_matrices, reference_pfms, starting_indices; tol=1e-9)
-
-    Returns a tuple (total_fragments::Int, span::String). The span is a human-readable string
-    describing all fragment spans across all matrices in global coordinates (using the provided
-    `starting_indices`). Examples:
-      - single column at 45 -> "45"
-      - columns 45-48 -> "45-48"
-      - two fragments at 45 and 51-55 -> "(45, 51-55)"
-    """
-
     total = 0
     all_spans = String[]
 

@@ -55,23 +55,52 @@ end
 # Main Coordinate Conversion Function
 # ===========================
 
-"""
-    freq2xy_general(pfm, chars; background, beta, logo_x_offset, logo_y_offset, alphabet_coords, very_small_perturb, scale_by_frequency)
+# Compute (xs, ys) glyph polygon for one (character, position) cell.
+function _glyph_cell_coords(col, idx, pos_idx, glyph, n_chars,
+                            very_small_perturb, scale_by_frequency,
+                            background, beta, logo_x_offset, logo_y_offset)
+    col_view = @view col[1:n_chars]
+    if scale_by_frequency
+        adjusted_heights = (col_view .+ very_small_perturb) .* 2
+    else
+        ic = ic_height_here(col_view; background = background)
+        adjusted_heights = compute_adjusted_heights(col_view, ic, very_small_perturb)
+    end
+    y_offset = compute_vertical_offset(adjusted_heights, idx)
+    xs = compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)
+    ys = compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)
+    return xs, ys
+end
 
-Convert position frequency matrix (PFM) to x/y coordinates for plotting sequence logos.
+# Append a single glyph polygon, then a NaN sentinel to break the polyline.
+function _append_polygon!(xs, ys, glyph_xs, glyph_ys)
+    append!(xs, glyph_xs); push!(xs, NaN)
+    append!(ys, glyph_ys); push!(ys, NaN)
+end
+
+"""
+    freq2xy_general(pfm, chars; kwargs...) -> Vector
+
+Convert a position frequency matrix to plotting coordinates for sequence logos.
+
+Returns a vector of `(char, (; xs, ys), is_nonref)` tuples, one per character (or
+two per character when `reference_pfm` is given — one bucket for positions that
+match the reference, one for those that differ).
 
 # Arguments
-- `pfm`: Position frequency matrix (rows = characters, columns = positions)
-- `chars`: Vector of character names (e.g., ["A", "C", "G", "T"])
-- `background`: Background frequencies for each character
-- `beta`: Scaling factor for glyph width
-- `logo_x_offset`, `logo_y_offset`: Offset coordinates for positioning
-- `alphabet_coords`: Dictionary mapping characters to glyph coordinates
-- `very_small_perturb`: Small random perturbation to avoid identical heights
-- `scale_by_frequency`: If true, scale letters by frequency only (stack to full height). If false (default), scale by information content.
+- `pfm`: rows = characters, columns = positions.
+- `chars`: character names matching `pfm`'s rows (e.g. `["A", "C", "G", "T"]`).
 
-# Returns
-Vector of tuples containing character name and (xs, ys) coordinates.
+# Keyword arguments
+- `background`: per-character background frequencies (default: uniform).
+- `beta`: glyph width scaling factor.
+- `logo_x_offset`, `logo_y_offset`: position offsets.
+- `alphabet_coords`: dict mapping each character to glyph polygon coords.
+- `very_small_perturb`: tiny per-row noise to break ties when stacking.
+- `scale_by_frequency`: if `true`, stack to full height by frequency only;
+  if `false` (default), scale by information content.
+- `reference_pfm`: optional column-wise one-hot `BitMatrix` marking the reference
+  letter at each position; enables match/mismatch coloring.
 """
 function freq2xy_general(
     pfm,
@@ -83,7 +112,7 @@ function freq2xy_general(
     alphabet_coords = ALPHABET_GLYPHS,
     very_small_perturb = nothing,
     scale_by_frequency = false,
-    reference_pfm::Union{BitMatrix, Nothing} = nothing # a columnwise one hot matrix to show the reference sequence
+    reference_pfm::Union{BitMatrix, Nothing} = nothing,  # column-wise one-hot reference sequence
 )
     n_chars = length(chars)
     background === nothing && (background = fill(1 / n_chars, n_chars))
@@ -93,73 +122,31 @@ function freq2xy_general(
 
     for (idx, c) in enumerate(chars)
         glyph = get(alphabet_coords, c, BASIC_RECT)
-        
-        # When reference is provided, we need to track positions separately
-        # to color matching vs non-matching positions differently
+
         if !isnothing(reference_pfm)
-            xs_ref, ys_ref = Float64[], Float64[]      # positions matching reference
-            xs_nonref, ys_nonref = Float64[], Float64[] # positions NOT matching reference
-            
+            # Split each char into two series: positions matching the reference and positions not.
+            xs_match, ys_match = Float64[], Float64[]
+            xs_diff,  ys_diff  = Float64[], Float64[]
             for (pos_idx, col) in enumerate(eachcol(pfm))
-                col_view = @view col[1:n_chars]
-                
-                if scale_by_frequency
-                    adjusted_heights = (col_view .+ very_small_perturb) .* 2
-                else
-                    ic_height = ic_height_here(col_view; background = background)
-                    adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
-                end
-                
-                y_offset = compute_vertical_offset(adjusted_heights, idx)
-                
-                xs_coord = compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)
-                ys_coord = compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)
-                
-                # Check if this character at this position matches the reference
+                gx, gy = _glyph_cell_coords(col, idx, pos_idx, glyph, n_chars,
+                    very_small_perturb, scale_by_frequency,
+                    background, beta, logo_x_offset, logo_y_offset)
                 if reference_pfm[idx, pos_idx] == 1
-                    # This is the reference letter at this position
-                    push!(xs_ref, xs_coord...)
-                    push!(xs_ref, NaN)
-                    push!(ys_ref, ys_coord...)
-                    push!(ys_ref, NaN)
+                    _append_polygon!(xs_match, ys_match, gx, gy)
                 else
-                    # This is NOT the reference letter at this position
-                    push!(xs_nonref, xs_coord...)
-                    push!(xs_nonref, NaN)
-                    push!(ys_nonref, ys_coord...)
-                    push!(ys_nonref, NaN)
+                    _append_polygon!(xs_diff, ys_diff, gx, gy)
                 end
             end
-            
-            # Add both reference and non-reference coordinates
-            if !isempty(xs_ref)
-                push!(all_coords, (c, (; xs=xs_ref, ys=ys_ref), false)) # matches reference
-            end
-            if !isempty(xs_nonref)
-                push!(all_coords, (c, (; xs=xs_nonref, ys=ys_nonref), true)) # doesn't match reference
-            end
+            isempty(xs_match) || push!(all_coords, (c, (; xs=xs_match, ys=ys_match), false))
+            isempty(xs_diff)  || push!(all_coords, (c, (; xs=xs_diff,  ys=ys_diff),  true))
         else
-            # No reference - original behavior
             xs, ys = Float64[], Float64[]
-            
             for (pos_idx, col) in enumerate(eachcol(pfm))
-                col_view = @view col[1:n_chars]
-
-                if scale_by_frequency
-                    adjusted_heights = (col_view .+ very_small_perturb) .* 2
-                else
-                    ic_height = ic_height_here(col_view; background = background)
-                    adjusted_heights = compute_adjusted_heights(col_view, ic_height, very_small_perturb)
-                end
-                
-                y_offset = compute_vertical_offset(adjusted_heights, idx)
-
-                push!(xs, compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)...)
-                push!(xs, NaN)
-                push!(ys, compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)...)
-                push!(ys, NaN)
+                gx, gy = _glyph_cell_coords(col, idx, pos_idx, glyph, n_chars,
+                    very_small_perturb, scale_by_frequency,
+                    background, beta, logo_x_offset, logo_y_offset)
+                _append_polygon!(xs, ys, gx, gy)
             end
-
             push!(all_coords, (c, (; xs, ys), false))
         end
     end
@@ -508,16 +495,11 @@ function save_logoplot(
     tight = false,
     scale_by_frequency = false,
 )
-    @assert all(sum(pfm, dims = 1) .≈ 1) "pfm must be a probability matrix"
-    @assert length(background) == 4 || length(background) == 20 "background must be a vector of length 4"
-    @assert all(0 .≤ background .≤ 1) "background must be a vector of probabilities"
+    expected_bg_len = protein ? 20 : 4
+    @assert all(sum(pfm, dims = 1) .≈ 1) "pfm must be a probability matrix (each column sums to 1)"
+    @assert length(background) == expected_bg_len "background must have length $expected_bg_len for $(protein ? "protein" : "nucleotide") logos"
+    @assert all(0 .≤ background .≤ 1) "background must contain probabilities in [0, 1]"
     @assert sum(background) ≈ 1 "background must sum to 1"
-
-    if protein
-        @assert length(background) == 20 "protein background must be length 20"
-    else
-        @assert length(background) == 4 "nucleotide background must be length 4"
-    end
 
     if isnothing(highlighted_regions)
         p = logoplot(
