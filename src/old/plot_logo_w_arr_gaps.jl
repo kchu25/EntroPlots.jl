@@ -111,8 +111,10 @@ function logoplot_with_rect_gaps(
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
     filter_by_reference::Bool = true,
     filter_tolerance::Real = 1e-9,
+    ref_match_color = "#1434A4",
+    ref_mismatch_color = :darkred,
     )
-    
+
     # Apply filtering if reference is provided and filtering is enabled
     if !isnothing(reference_pfms) && filter_by_reference
         @assert length(reference_pfms) == length(count_matrices) "The number of reference pfms should match the number of count matrices"
@@ -176,7 +178,9 @@ function logoplot_with_rect_gaps(
             xrotation = xrotation,
             uniform_color = uniform_color,
             scale_by_frequency = true,
-            reference_pfm = !isnothing(reference_pfms) ? reference_pfms[ind] : nothing
+            reference_pfm = !isnothing(reference_pfms) ? reference_pfms[ind] : nothing,
+            ref_match_color = ref_match_color,
+            ref_mismatch_color = ref_mismatch_color,
         )
     end
     for (_, col) in enumerate(eachcol(coords_mat))
@@ -223,6 +227,8 @@ function save_logo_with_rect_gaps(
     reference_pfms::Union{Nothing, Vector{BitMatrix}} = nothing,
     filter_by_reference::Bool = true,
     filter_tolerance::Real = 1e-9,
+    ref_match_color = "#1434A4",
+    ref_mismatch_color = :darkred,
 )
     # Validate inputs - count matrices should have positive integer counts
     for (i, counts) in enumerate(count_matrices)
@@ -247,7 +253,9 @@ function save_logo_with_rect_gaps(
         xrotation = xrotation,
         reference_pfms = reference_pfms,
         filter_by_reference = filter_by_reference,
-        filter_tolerance = filter_tolerance
+        filter_tolerance = filter_tolerance,
+        ref_match_color = ref_match_color,
+        ref_mismatch_color = ref_mismatch_color,
     )
     
     # Save the plot

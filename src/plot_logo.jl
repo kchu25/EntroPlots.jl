@@ -221,6 +221,8 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     xticks_nothing = true,
     scale_by_frequency = false,
     reference_pfm = nothing, # a columnwise one hot matrix to show the reference sequence
+    ref_match_color = "#1434A4",   # color for letters matching the reference
+    ref_mismatch_color = :darkred, # color for letters differing from the reference
 )
     # Extract and validate input data
     pfm = data.args[1]
@@ -282,9 +284,9 @@ Supports DNA, RNA, and protein sequences with extensive customization options.
     
     # Create series for each character
     for (char, coord_data, non_ref_letter) in coords
-        # When reference_pfm is provided, use blue/darkred coloring scheme
+        # When reference_pfm is provided, use match/mismatch coloring scheme
         if !isnothing(reference_pfm)
-            color_here = non_ref_letter ? :darkred : "#1434A4"
+            color_here = non_ref_letter ? ref_mismatch_color : ref_match_color
         else
             color_here = get(palette, char, :grey)
         end
