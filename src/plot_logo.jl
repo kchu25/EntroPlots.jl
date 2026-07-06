@@ -6,77 +6,44 @@
 # Utility Functions
 # ===========================
 
-"""
-    compute_adjusted_heights(col_view, ic_height, perturb)
-
-Scale frequencies by information content and add tiny noise for proper stacking.
-"""
-function compute_adjusted_heights(col_view, ic_height, perturb)
-    return ic_height .* col_view .+ perturb
-end
-
-"""
-    compute_vertical_offset(adjusted_heights, aa_idx)
-
-Calculate vertical offset for stacking by summing all heights smaller than current character height.
-"""
-function compute_vertical_offset(adjusted_heights, aa_idx)
-    h = adjusted_heights[aa_idx]
-    s = 0.0
-    @inbounds for i in eachindex(adjusted_heights)
-        if adjusted_heights[i] < h
-            s += adjusted_heights[i]
+# Fill `adj` with the stacked per-character heights for a single column.
+# `adj` depends only on the column (not on the character being drawn), so
+# `freq2xy_general` computes it once per column and reuses it across all glyphs.
+# Kept as a standalone function (an explicit-argument function barrier) so the
+# hot loop stays type-stable regardless of how the parent captures variables.
+function _fill_adjusted_heights!(adj, col, background, very_small_perturb,
+                                 scale_by_frequency, n_chars)
+    if scale_by_frequency
+        @inbounds for k in 1:n_chars
+            adj[k] = (col[k] + very_small_perturb[k]) * 2
+        end
+    else
+        # Column information content: sum(col .* log2((col + ϵ) / background)).
+        ic = 0.0
+        @inbounds for k in 1:n_chars
+            ic += col[k] * log2((col[k] + 1e-30) / background[k])
+        end
+        @inbounds for k in 1:n_chars
+            adj[k] = ic * col[k] + very_small_perturb[k]
         end
     end
+    return adj
+end
+
+# Vertical stacking offset for a glyph of height `h`: the sum of all heights
+# strictly smaller than `h`, accumulated in ascending index order to match the
+# original element-wise summation bit-for-bit.
+@inline function _vertical_offset(adj, h, n_chars)
+    s = 0.0
+    @inbounds for i in 1:n_chars
+        adj[i] < h && (s += adj[i])
+    end
     return s
-end
-
-"""
-    compute_glyph_x_coords(glyph_x, beta, pos_idx, logo_x_offset)
-
-Compute x-coordinates for a glyph based on position and scaling factors.
-"""
-function compute_glyph_x_coords(glyph_x, beta, pos_idx, logo_x_offset)
-    scale = beta * 1.2
-    shift = (1 / (beta * 0.9)) * 0.35 + pos_idx + (logo_x_offset - 1)
-    return @. scale * glyph_x + shift
-end
-
-"""
-    compute_glyph_y_coords(adjusted_height, glyph_y, y_offset, logo_y_offset)
-
-Compute y-coordinates for a glyph based on height and vertical offset.
-"""
-function compute_glyph_y_coords(adjusted_height, glyph_y, y_offset, logo_y_offset)
-    return adjusted_height .* glyph_y .+ y_offset .+ logo_y_offset
 end
 
 # ===========================
 # Main Coordinate Conversion Function
 # ===========================
-
-# Compute (xs, ys) glyph polygon for one (character, position) cell.
-function _glyph_cell_coords(col, idx, pos_idx, glyph, n_chars,
-                            very_small_perturb, scale_by_frequency,
-                            background, beta, logo_x_offset, logo_y_offset)
-    col_view = @view col[1:n_chars]
-    if scale_by_frequency
-        adjusted_heights = (col_view .+ very_small_perturb) .* 2
-    else
-        ic = ic_height_here(col_view; background = background)
-        adjusted_heights = compute_adjusted_heights(col_view, ic, very_small_perturb)
-    end
-    y_offset = compute_vertical_offset(adjusted_heights, idx)
-    xs = compute_glyph_x_coords(glyph.x, beta, pos_idx, logo_x_offset)
-    ys = compute_glyph_y_coords(adjusted_heights[idx], glyph.y, y_offset, logo_y_offset)
-    return xs, ys
-end
-
-# Append a single glyph polygon, then a NaN sentinel to break the polyline.
-function _append_polygon!(xs, ys, glyph_xs, glyph_ys)
-    append!(xs, glyph_xs); push!(xs, NaN)
-    append!(ys, glyph_ys); push!(ys, NaN)
-end
 
 """
     freq2xy_general(pfm, chars; kwargs...) -> Vector
@@ -101,6 +68,14 @@ match the reference, one for those that differ).
   if `false` (default), scale by information content.
 - `reference_pfm`: optional column-wise one-hot `BitMatrix` marking the reference
   letter at each position; enables match/mismatch coloring.
+
+# Implementation notes
+Positions are iterated in the outer loop so the per-column stacked heights are
+computed once per column and shared across all glyphs (rather than recomputed once
+per character × column). Glyph polygons are prefetched into a concretely-typed
+vector and written into exact-preallocated per-character buffers, avoiding dynamic
+dispatch and `append!`/`push!` regrowth. Output is numerically identical to the
+previous character-major implementation.
 """
 function freq2xy_general(
     pfm,
@@ -117,37 +92,76 @@ function freq2xy_general(
     n_chars = length(chars)
     background === nothing && (background = fill(1 / n_chars, n_chars))
     very_small_perturb === nothing && (very_small_perturb = 1e-5 .* rand(n_chars))
+    L = size(pfm, 2)
 
-    all_coords = []
+    # Prefetch glyph polygons into a concretely-typed vector; with the concrete
+    # `ALPHABET_GLYPHS` value type this keeps the inner loop free of dynamic dispatch.
+    glyphs = [get(alphabet_coords, c, BASIC_RECT) for c in chars]
 
-    for (idx, c) in enumerate(chars)
-        glyph = get(alphabet_coords, c, BASIC_RECT)
+    CoordNT = @NamedTuple{xs::Vector{Float64}, ys::Vector{Float64}}
+    all_coords = Tuple{String, CoordNT, Bool}[]
 
-        if !isnothing(reference_pfm)
-            # Split each char into two series: positions matching the reference and positions not.
-            xs_match, ys_match = Float64[], Float64[]
-            xs_diff,  ys_diff  = Float64[], Float64[]
-            for (pos_idx, col) in enumerate(eachcol(pfm))
-                gx, gy = _glyph_cell_coords(col, idx, pos_idx, glyph, n_chars,
-                    very_small_perturb, scale_by_frequency,
-                    background, beta, logo_x_offset, logo_y_offset)
-                if reference_pfm[idx, pos_idx] == 1
-                    _append_polygon!(xs_match, ys_match, gx, gy)
-                else
-                    _append_polygon!(xs_diff, ys_diff, gx, gy)
+    beta_scale = beta * 1.2
+    adj = Vector{Float64}(undef, n_chars)  # reused per column
+
+    if reference_pfm === nothing
+        # One exact-sized buffer per character: each column adds a glyph polygon plus one
+        # NaN separator to break the polyline.
+        xs = [Vector{Float64}(undef, L * (length(g.x) + 1)) for g in glyphs]
+        ys = [Vector{Float64}(undef, L * (length(g.x) + 1)) for g in glyphs]
+        ptr = ones(Int, n_chars)
+        @inbounds for pos in 1:L
+            col = view(pfm, 1:n_chars, pos)
+            _fill_adjusted_heights!(adj, col, background, very_small_perturb,
+                                    scale_by_frequency, n_chars)
+            shift = (1 / (beta * 0.9)) * 0.35 + pos + (logo_x_offset - 1)
+            for idx in 1:n_chars
+                g = glyphs[idx]; gx = g.x; gy = g.y
+                h = adj[idx]
+                yoff = _vertical_offset(adj, h, n_chars)
+                bx = xs[idx]; by = ys[idx]; p = ptr[idx]
+                for j in eachindex(gx)
+                    bx[p] = beta_scale * gx[j] + shift
+                    by[p] = h * gy[j] + yoff + logo_y_offset
+                    p += 1
                 end
+                bx[p] = NaN; by[p] = NaN; p += 1
+                ptr[idx] = p
             end
-            isempty(xs_match) || push!(all_coords, (c, (; xs=xs_match, ys=ys_match), false))
-            isempty(xs_diff)  || push!(all_coords, (c, (; xs=xs_diff,  ys=ys_diff),  true))
-        else
-            xs, ys = Float64[], Float64[]
-            for (pos_idx, col) in enumerate(eachcol(pfm))
-                gx, gy = _glyph_cell_coords(col, idx, pos_idx, glyph, n_chars,
-                    very_small_perturb, scale_by_frequency,
-                    background, beta, logo_x_offset, logo_y_offset)
-                _append_polygon!(xs, ys, gx, gy)
+        end
+        for idx in 1:n_chars
+            push!(all_coords, (chars[idx], (xs = xs[idx], ys = ys[idx]), false))
+        end
+    else
+        # Match/mismatch split is data-dependent, so grow the buckets with push! — still on
+        # concretely-typed buffers.
+        xs_match = [Float64[] for _ in 1:n_chars]; ys_match = [Float64[] for _ in 1:n_chars]
+        xs_diff  = [Float64[] for _ in 1:n_chars]; ys_diff  = [Float64[] for _ in 1:n_chars]
+        @inbounds for pos in 1:L
+            col = view(pfm, 1:n_chars, pos)
+            _fill_adjusted_heights!(adj, col, background, very_small_perturb,
+                                    scale_by_frequency, n_chars)
+            shift = (1 / (beta * 0.9)) * 0.35 + pos + (logo_x_offset - 1)
+            for idx in 1:n_chars
+                g = glyphs[idx]; gx = g.x; gy = g.y
+                h = adj[idx]
+                yoff = _vertical_offset(adj, h, n_chars)
+                if reference_pfm[idx, pos] == 1
+                    bx = xs_match[idx]; by = ys_match[idx]
+                else
+                    bx = xs_diff[idx];  by = ys_diff[idx]
+                end
+                for j in eachindex(gx)
+                    push!(bx, beta_scale * gx[j] + shift)
+                    push!(by, h * gy[j] + yoff + logo_y_offset)
+                end
+                push!(bx, NaN); push!(by, NaN)
             end
-            push!(all_coords, (c, (; xs, ys), false))
+        end
+        for idx in 1:n_chars
+            c = chars[idx]
+            isempty(xs_match[idx]) || push!(all_coords, (c, (xs = xs_match[idx], ys = ys_match[idx]), false))
+            isempty(xs_diff[idx])  || push!(all_coords, (c, (xs = xs_diff[idx],  ys = ys_diff[idx]),  true))
         end
     end
 
