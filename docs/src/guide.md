@@ -151,6 +151,59 @@ Set `filter_by_reference=true` to first drop columns that exactly match the refe
 [`apply_count_filter`](@ref)), keeping only the positions that vary. To draw the plot without
 saving, call `logoplot_with_rect_gaps` with the same arguments (minus the file path).
 
+### Amino-acid (protein) variant
+
+The same works for protein motifs — pass `protein=true` and supply **20-row** count matrices
+and references (rows in the order `A C D E F G H I K L M N P Q R S T V W Y`):
+
+```julia
+using EntroPlots
+
+# 20 amino acids, in the row order EntroPlots expects.
+const AA = ["A","C","D","E","F","G","H","I","K","L",
+            "M","N","P","Q","R","S","T","V","W","Y"]
+row(c) = findfirst(==(c), AA)
+
+# 20 x ncols COUNT matrix: small background, a tall dominant residue per column,
+# plus a shorter secondary residue for a realistic stack.
+function counts(dominant, secondary; base=1, hi=90, mid=30)
+    M = fill(base, 20, length(dominant))
+    for j in eachindex(dominant)
+        M[row(dominant[j]),  j] += hi
+        M[row(secondary[j]), j] += mid
+    end
+    return M
+end
+
+# One-hot reference (BitMatrix): the wild-type residue per column.
+onehot(seq) = BitMatrix([AA[i] == seq[j] for i in eachindex(AA), j in eachindex(seq)])
+
+# Fragment 1: dominant motif L K E F ; reference (wild-type) L K D F
+cm1  = counts(["L","K","E","F"], ["I","R","D","Y"])
+ref1 = onehot(["L","K","D","F"])   # column 3 differs (E vs D) -> mismatch color
+
+# Fragment 2: dominant motif R S T Y ; reference R A T Y
+cm2  = counts(["R","S","T","Y"], ["K","T","V","F"])
+ref2 = onehot(["R","A","T","Y"])   # column 2 differs (S vs A) -> mismatch color
+
+save_logo_with_rect_gaps(
+    [cm1, cm2], [3, 12], 17,          # starts at 3 and 12, total track length 17
+    "logo_rect_gaps_protein.png";
+    protein            = true,
+    reference_pfms     = [ref1, ref2],
+    dpi                = 100,
+    xrotation          = 35,
+    uniform_color      = true,
+    ref_match_color    = "#1434A4",   # blue: matches reference
+    ref_mismatch_color = "#2E8B57",   # green: differs from reference
+)
+```
+
+![Protein gapped logo with strike-through connectors](assets/logo_rect_gaps_protein.png)
+
+Here `LKEF` and `RSTY` are the dominant motifs; the reference-mismatch columns (`E` in
+fragment 1, `S` in fragment 2) are drawn in green, everything matching the wild-type in blue.
+
 ## Common keyword arguments
 
 Most plotting functions accept the following keywords:
