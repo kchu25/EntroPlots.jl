@@ -148,7 +148,7 @@ Updates starting indices to reflect new fragment positions.
 """
 function apply_count_filter(count_matrices::Vector, starting_indices::Vector{Int}, 
                            reference_pfms::Vector{BitMatrix}; tol=1e-9)
-    new_counts, new_starts, new_refs = [], Int[], BitMatrix[]
+    new_counts, new_starts, new_refs = [], Int[], BitMatrix[] # TODO: make type specific
     
     for (counts, start, ref) in zip(count_matrices, starting_indices, reference_pfms)
         keep = filter_counts_by_reference(counts, ref; tol=tol)
