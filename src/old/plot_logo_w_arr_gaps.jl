@@ -98,6 +98,26 @@ function make_xtick_labels(pfms, pfms_offsets, starting_indices, total_len)
 end
 
 
+"""
+    logoplot_with_rect_gaps(count_matrices, starting_indices, total_length; kwargs...)
+
+Plot several logo fragments positioned along a track of length `total_length`, joined by
+rectangular connector glyphs across the gaps between them.
+
+`count_matrices` is a vector of per-fragment count/frequency matrices and `starting_indices`
+gives each fragment's starting position on the track. When `reference_pfms` (a vector of
+column-wise one-hot `BitMatrix`) is supplied and `filter_by_reference=true`, columns that
+match the reference are dropped via [`apply_count_filter`](@ref) before plotting.
+
+# Notable keyword arguments
+- `reference_pfms=nothing`, `filter_by_reference=true`, `filter_tolerance=1e-9`: reference-based
+  column filtering.
+- `ref_match_color`, `ref_mismatch_color`: colors for reference-matching / mismatching letters.
+- `rna`, `protein`, `uniform_color`, `dpi`, `xrotation`, `height_top`,
+  `arrow_shape_scale_ratio`, `basic_fcn`: styling of the logos and connectors.
+
+See also [`save_logo_with_rect_gaps`](@ref).
+"""
 function logoplot_with_rect_gaps(
     count_matrices, starting_indices, total_length;
     arrow_shape_scale_ratio::Real = 1.0,
@@ -211,6 +231,13 @@ function save_logo_w_arrows(
     savefig(p, save_name)
 end
 
+"""
+    save_logo_with_rect_gaps(count_matrices, starting_indices, total_length, save_name; kwargs...)
+
+Render a gapped multi-fragment logo (see [`logoplot_with_rect_gaps`](@ref)) and save it to
+`save_name`. The output format is inferred from the file extension. Accepts the same keyword
+arguments as [`logoplot_with_rect_gaps`](@ref), including reference-based column filtering.
+"""
 function save_logo_with_rect_gaps(
     count_matrices,
     starting_indices,

@@ -12,7 +12,12 @@ makedocs(;
         edit_link = "main",
         assets = String[],
     ),
-    pages = ["Home" => "index.md"],
+    checkdocs = :exports,
+    pages = [
+        "Home" => "index.md",
+        "Guide" => "guide.md",
+        "API Reference" => "api.md",
+    ],
 )
 
 deploydocs(; repo = "github.com/kchu25/EntroPlots.jl", devbranch = "main")

@@ -3,6 +3,14 @@ mutable struct shape
     y::Vector{Float64}
 end
 
+"""
+    get_rectangle_basic(; line_scale=1.0, right=true, x_offset=0.0)
+
+Return the basic rectangular arrow-shaft `shape` used as the connector glyph between logo
+fragments in the gap/spacer plots. `line_scale` scales its length, `right` orients the arrow
+head, and `x_offset` shifts it horizontally. Used as the default `basic_fcn` for
+[`logoplot_with_rect_gaps`](@ref) and [`save_logo_with_rect_gaps`](@ref).
+"""
 function get_rectangle_basic(; line_scale = 1.0, right = true, x_offset = 0.0)
     #=
         the horizontal line 

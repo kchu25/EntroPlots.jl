@@ -47,7 +47,15 @@ function is_overlapping(r1::UnitRange{T}, r2::UnitRange{T}) where {T<:Integer}
     max(r1.start, r2.start) ≤ min(r1.stop, r2.stop)
 end
 
-# Function to reduce entropy in each column
+"""
+    reduce_entropy!(pfm; factor=10)
+
+Sharpen each column of a PFM toward its dominant symbol, in place.
+
+Each column is raised element-wise to the power `factor` and then renormalized to sum to 1.
+Larger `factor` values make the dominant symbol more overwhelming (lower entropy); `factor=1`
+leaves the column unchanged. Useful for cleaning up noisy protein PFMs before plotting.
+"""
 function reduce_entropy!(pfm_protein; factor = 10)
     for j in axes(pfm_protein, 2)
         # Increase the dominance of the highest value in each column
