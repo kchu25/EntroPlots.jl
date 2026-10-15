@@ -37,6 +37,12 @@ apply_count_filter
 These functions render multiple logo fragments along a track, joined by rectangular
 connectors. They are retained for downstream packages.
 
+Both `logoplot_with_rect_gaps` and `save_logo_with_rect_gaps` accept optional outside fragments:
+`outside_count_matrices`, `outside_starting_indices` and `outside_reference_pfms` (default
+`nothing`), drawn unfiltered with `outside_match_color` (default `"#64748B"`) for reference
+letters and `outside_mismatch_color` (default `"#E69F00"`) for the others. See the guide section
+"Outside fragments in a second colour pair".
+
 ```@docs
 logoplot_with_rect_gaps
 save_logo_with_rect_gaps

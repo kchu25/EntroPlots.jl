@@ -148,8 +148,45 @@ save_logo_with_rect_gaps(
 ![Gapped logo with strike-through connectors](assets/logo_rect_gaps.png)
 
 Set `filter_by_reference=true` to first drop columns that exactly match the reference (via
-[`apply_count_filter`](@ref)), keeping only the positions that vary. To draw the plot without
-saving, call `logoplot_with_rect_gaps` with the same arguments (minus the file path).
+[`apply_count_filter`](@ref)), keeping only the positions that vary. `filter_tolerance` (default
+`1e-9`) sets how much non-reference mass a column needs to be kept: a column survives iff
+`abs(dot(col, ref_col) - sum(col)) > filter_tolerance`. To draw the plot without saving, call
+`logoplot_with_rect_gaps` with the same arguments (minus the file path).
+
+### Outside fragments in a second colour pair
+
+Pass `outside_count_matrices`, `outside_starting_indices` and `outside_reference_pfms` to add
+extra fragments to the same track, drawn in their own colours. They are not filtered. After any
+`filter_by_reference` step, they are merged with the main fragments, sorted by starting position,
+and laid out by the same gap machinery (connectors and position tick labels). They must not
+overlap the main fragments, and they need `reference_pfms`. The three `outside_*` inputs go
+together: equal lengths, and each count matrix as wide as its reference (an `AssertionError`
+otherwise).
+
+| Keyword | Default | Purpose |
+|---|---|---|
+| `outside_count_matrices` | `nothing` | Count matrices of the extra fragments (same row order as the main ones). |
+| `outside_starting_indices` | `nothing` | 1-based starting position of each extra fragment. |
+| `outside_reference_pfms` | `nothing` | One-hot reference (`BitMatrix`) per extra fragment. |
+| `outside_match_color` | `"#64748B"` (slate grey) | Colour of reference letters in the extra fragments. |
+| `outside_mismatch_color` | `"#E69F00"` (orange) | Colour of non-reference letters in the extra fragments. |
+
+GlyphEctoplasm uses this to show the mutations that a motif's sequences carry outside the motif's
+filter windows. With `outside_count_matrices=nothing` (the default) the plot is the same as
+without these arguments.
+
+```julia
+# The window 3:7 from the example above, plus one extra site at 12 (reference T).
+extra = [2; 0; 3; 45;;]                      # 45 T (reference), 2 A and 3 G
+save_logo_with_rect_gaps(
+    [cm1], [3], 22, "logo_rect_gaps_outside.png";
+    reference_pfms           = [ref1],
+    filter_by_reference      = false,
+    outside_count_matrices   = [extra],
+    outside_starting_indices = [12],
+    outside_reference_pfms   = [BitMatrix([0; 0; 0; 1;;])],
+)
+```
 
 ### Amino-acid (protein) variant
 

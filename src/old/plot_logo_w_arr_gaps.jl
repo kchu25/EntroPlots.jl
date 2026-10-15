@@ -113,8 +113,22 @@ match the reference are dropped via [`apply_count_filter`](@ref) before plotting
 - `reference_pfms=nothing`, `filter_by_reference=true`, `filter_tolerance=1e-9`: reference-based
   column filtering.
 - `ref_match_color`, `ref_mismatch_color`: colors for reference-matching / mismatching letters.
+- `outside_count_matrices=nothing`, `outside_starting_indices=nothing`,
+  `outside_reference_pfms=nothing`: optional extra fragments ("outside" fragments) drawn on the
+  same track. They are never filtered: they are merged with the fragments that survive the
+  reference filter, sorted by starting position, and laid out by the same gap machinery
+  (connectors, tick labels). They must not overlap the main fragments. Requires
+  `reference_pfms`; the three outside arguments go together, with equal lengths, and each
+  outside count matrix must have as many columns as its reference.
+- `outside_match_color="#64748B"`, `outside_mismatch_color="#E69F00"`: colors for
+  reference-matching / mismatching letters in the outside fragments, so they read apart from the
+  main fragments (`ref_match_color` / `ref_mismatch_color`).
 - `rna`, `protein`, `uniform_color`, `dpi`, `xrotation`, `height_top`,
   `arrow_shape_scale_ratio`, `basic_fcn`: styling of the logos and connectors.
+
+With `outside_count_matrices=nothing` (the default) the plot is exactly the plot drawn without the
+outside arguments. The "nothing to plot after filtering" error is raised when the main fragments
+are filtered to nothing, even if outside fragments are given.
 
 See also [`save_logo_with_rect_gaps`](@ref).
 """
@@ -133,6 +147,11 @@ function logoplot_with_rect_gaps(
     filter_tolerance::Real = 1e-9,
     ref_match_color = "#1434A4",
     ref_mismatch_color = :darkred,
+    outside_count_matrices = nothing,     # Vector of A x w count matrices, or nothing
+    outside_starting_indices = nothing,   # Vector{Int}, 1-based starts
+    outside_reference_pfms = nothing,     # Vector{BitMatrix}, one-hot reference columns
+    outside_match_color = "#64748B",      # color of reference letters in outside fragments
+    outside_mismatch_color = "#E69F00",   # color of non-reference letters in outside fragments
     )
 
     # Apply filtering if reference is provided and filtering is enabled
@@ -148,6 +167,25 @@ function logoplot_with_rect_gaps(
         if isempty(count_matrices)
             error("All columns match reference - nothing to plot after filtering")
         end
+    end
+
+    # Merge the outside fragments (never filtered) into the track, sorted by start.
+    # `is_outside` marks them so the drawing loop can give them their own colors.
+    is_outside = falses(length(count_matrices))
+    if outside_count_matrices !== nothing && !isempty(outside_count_matrices)
+        @assert !isnothing(reference_pfms) "Outside fragments need reference_pfms"
+        @assert !isnothing(outside_starting_indices) && !isnothing(outside_reference_pfms) "Outside fragments need outside_starting_indices and outside_reference_pfms"
+        @assert length(outside_count_matrices) == length(outside_starting_indices) == length(outside_reference_pfms) "The outside fragment inputs must have equal lengths"
+        for (i, (c, r)) in enumerate(zip(outside_count_matrices, outside_reference_pfms))
+            @assert size(c, 2) == size(r, 2) "Outside count matrix $i and its reference must have the same number of columns"
+        end
+        all_mats   = vcat(collect(count_matrices), collect(outside_count_matrices))
+        all_starts = vcat(collect(starting_indices), collect(outside_starting_indices))
+        all_refs   = vcat(collect(reference_pfms), collect(outside_reference_pfms))
+        flags      = vcat(falses(length(count_matrices)), trues(length(outside_count_matrices)))
+        perm = sortperm(all_starts)
+        count_matrices, starting_indices = all_mats[perm], all_starts[perm]
+        reference_pfms, is_outside       = all_refs[perm], flags[perm]
     end
     
     # Normalize count matrices to PFMs
@@ -199,8 +237,8 @@ function logoplot_with_rect_gaps(
             uniform_color = uniform_color,
             scale_by_frequency = true,
             reference_pfm = !isnothing(reference_pfms) ? reference_pfms[ind] : nothing,
-            ref_match_color = ref_match_color,
-            ref_mismatch_color = ref_mismatch_color,
+            ref_match_color = (is_outside[ind] ? outside_match_color : ref_match_color),
+            ref_mismatch_color = (is_outside[ind] ? outside_mismatch_color : ref_mismatch_color),
         )
     end
     for (_, col) in enumerate(eachcol(coords_mat))
@@ -236,7 +274,10 @@ end
 
 Render a gapped multi-fragment logo (see [`logoplot_with_rect_gaps`](@ref)) and save it to
 `save_name`. The output format is inferred from the file extension. Accepts the same keyword
-arguments as [`logoplot_with_rect_gaps`](@ref), including reference-based column filtering.
+arguments as [`logoplot_with_rect_gaps`](@ref), including reference-based column filtering and
+the outside fragments (`outside_count_matrices`, `outside_starting_indices`,
+`outside_reference_pfms`, `outside_match_color`, `outside_mismatch_color`). Every count matrix,
+main or outside, must be non-negative with positive column sums.
 """
 function save_logo_with_rect_gaps(
     count_matrices,
@@ -256,11 +297,22 @@ function save_logo_with_rect_gaps(
     filter_tolerance::Real = 1e-9,
     ref_match_color = "#1434A4",
     ref_mismatch_color = :darkred,
+    outside_count_matrices = nothing,
+    outside_starting_indices = nothing,
+    outside_reference_pfms = nothing,
+    outside_match_color = "#64748B",
+    outside_mismatch_color = "#E69F00",
 )
     # Validate inputs - count matrices should have positive integer counts
     for (i, counts) in enumerate(count_matrices)
         @assert all(counts .>= 0) "Count matrix $i has negative values"
         @assert all(sum(counts, dims=1) .> 0) "Count matrix $i has columns that sum to zero"
+    end
+    if outside_count_matrices !== nothing
+        for (i, counts) in enumerate(outside_count_matrices)
+            @assert all(counts .>= 0) "Outside count matrix $i has negative values"
+            @assert all(sum(counts, dims=1) .> 0) "Outside count matrix $i has columns that sum to zero"
+        end
     end
     
     if !isnothing(reference_pfms)
@@ -283,6 +335,11 @@ function save_logo_with_rect_gaps(
         filter_tolerance = filter_tolerance,
         ref_match_color = ref_match_color,
         ref_mismatch_color = ref_mismatch_color,
+        outside_count_matrices = outside_count_matrices,
+        outside_starting_indices = outside_starting_indices,
+        outside_reference_pfms = outside_reference_pfms,
+        outside_match_color = outside_match_color,
+        outside_mismatch_color = outside_mismatch_color,
     )
     
     # Save the plot
